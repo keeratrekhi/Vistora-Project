@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String         @id @default(cuid())
+  password  String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  mobile    String?        @unique
+  username  String?        @unique
+  storageUsed         BigInt      @default(0)               // In bytes
+  totalStorageAllowed BigInt      @default(10737418240)     // 10GB default (10737418240 bytes)
+  portfolio UserPortfolio?
+  events   Event[]
+}
+
+model EventMedia {
+  id       String @id @default(cuid())
+  fileName String
+  url      String //store back blaze url
+  type     String //photo or video
+  //size of the file in bytes
+  eventId  String
+  event    Event  @relation(fields: [eventId], references: [id])
+}
+
+model UserPortfolio {
+  id            String  @id @default(cuid())
+  portfolioQrCode String
+  //add unique route name which represents the brand
+  name          String
+  description   String?
+  contact       String?
+  email         String?
+  area          String?
+  city          String?
+  state         String?
+  country       String?
+  postalCode    String?
+  facebookLink  String?
+  instagramLink String?
+  twitterLink   String?
+  websiteLink   String?
+  youtubeLink   String?
+  logo          String?
+  coverImage    String?
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id])
+}
+
+model Event {
+  id                String       @id @default(cuid())
+  title             String
+  description       String?
+  //add event QR code
+  //total storage used for this event (sum of all media of this event)
+  eventDate         DateTime     @default(now())
+  location          String?
+  coverImageUrl        String?
+  isPublished       Boolean      @default(false)
+  publishedUrl      String?
+  accessType        Int          @default(0)
+  pin               Int
+  publishedDateTime DateTime?    @default(now())
+  eventMedia        EventMedia[]
+  userId           String
+  user             User   @relation(fields: [userId], references: [id])
+}

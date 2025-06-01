@@ -1,0 +1,14 @@
+export const HOME_ROUTE = "/";
+export const LOGIN_ROUTE = "/login";
+export const SIGNUP_ROUTE = "/signup";
+export const DASHBOARD_ROUTE = "/dashboard/:username";
+export const ADMIN_EVENTS_ROUTE = "/events";
+export const CREATE_EVENT_ROUTE = "/create-event"
+export const PORTFOLIO_INFO_ROUTE = "/portfolio-info";
+export const PORTFOLIO_ROUTE = "/portfolio/:id";
+export const EVENT_SHARE_ROUTE = '/event';
+export const NOT_FOUND_ROUTE = "/not-found";
+export const CHUNK_UPLOAD_ROUTE = "/chunk-upload";
+export const ADMIN_EVENT_PAGE_ROUTE = "/events/:id";
+export const PROFILE_ROUTE = "/profile/:id";
+export const PLANS_ROUTE = "/plan/:id";
