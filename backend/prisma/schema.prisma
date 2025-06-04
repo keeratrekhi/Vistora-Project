@@ -34,7 +34,7 @@ model UserPortfolio {
   id            String  @id @default(cuid())
   portfolioQrCode String
   //add unique route name which represents the brand
-  name          String
+  name          String  @unique
   description   String?
   contact       String?
   email         String?

@@ -1,10 +1,10 @@
-// components/EventCardActionButtons.tsx
+
 import React from 'react'
 
 import { ArrowUpFromLine, Settings, Share2, Trash, UserRoundPlus } from 'lucide-react'
 import { EventCardActionButton } from './EventCardActionButton';
 
-// components/EventCardActionButtons.tsx
+
 interface EventCardActionButtonsProps {
   onDelete: () => void;
 }

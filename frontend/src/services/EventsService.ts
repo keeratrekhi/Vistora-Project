@@ -12,6 +12,7 @@ interface UpdateEventPayload {
   eventDate?: string;      // or Date | ISO string, whichever your API expects
   isPublished?: boolean;
   publishedUrl?: string;
+  coverImageUrl?: string; 
   // pin, coverImageUrl, etc, only if you intend to update them
 }
 

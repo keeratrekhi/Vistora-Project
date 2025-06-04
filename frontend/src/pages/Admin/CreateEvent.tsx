@@ -170,57 +170,6 @@ export const CreateEvent = () => {
             />
           </div>
 
-          {/* TODO : implement image upload */}
-          {/* Cover Image */}
-          {/* <div className="mb-5">
-            <label
-              htmlFor="coverImage"
-              className="mb-3 block text-base font-medium text-[#07074D]"
-            >
-              Upload Cover Image
-            </label>
-            <input
-              onChange={handleInfoChange}
-              type="file"
-              name="coverImage"
-              id="coverImage"
-              className="mt-2 block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-teal-500 file:py-2 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-teal-700 focus:outline-none disabled:pointer-events-none disabled:opacity-60"
-            />
-          </div> */}
-
-          {/* Is Published */}
-          {/* <div className="mb-5">
-            <label htmlFor="isPublished" className="mb-3 block text-base font-medium text-[#07074D]">
-              Is Published
-            </label>
-            <input
-              onChange={handleInfoChange}
-              type="checkbox"
-              name="isPublished"
-              id="isPublished"
-              checked={eventInfo.isPublished}
-              className="mr-2"
-            />
-            <span>Published</span>
-          </div> */}
-
-          {/* Access Type */}
-          {/* <div className="mb-5">
-            <label htmlFor="accessType" className="mb-3 block text-base font-medium text-[#07074D]">
-              Access Type
-            </label>
-            <select
-              onChange={handleInfoChange}
-              name="accessType"
-              id="accessType"
-              value={eventInfo.accessType}
-              className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-            >
-              <option value="public">Public</option>
-              <option value="private">Private</option>
-            </select>
-          </div> */}
-
           {/* Submit Button */}
           <div>
             <button

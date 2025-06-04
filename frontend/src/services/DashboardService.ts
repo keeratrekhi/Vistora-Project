@@ -13,6 +13,11 @@ export const getPortfolio = async (id : String): Promise<PortfolioDto> => {
     return response.data;
 }
 
+export const getPortfolioSite = async (name : String): Promise<PortfolioDto> => {
+    const response = await APIService.get<PortfolioDto>(`${env.VITE_PORTFOLIO_URL}/getport/${name}`);
+    return response.data;
+}
+
 export const createPortfolio = async (portfolioInfo: PortfolioInfoModel): Promise<void> => {
     await APIService.post<PortfolioDto, PortfolioInfoModel>(env.VITE_PORTFOLIO_URL, portfolioInfo);
     return;

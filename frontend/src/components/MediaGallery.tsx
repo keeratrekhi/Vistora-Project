@@ -28,6 +28,7 @@ const MediaGallery = ({
   const [error, setError] = useState('');
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -65,8 +66,6 @@ const MediaGallery = ({
   }, [eventId, refreshKey]);
 
   const toggleSelectItem = (name: string) => {
-    if (mode !== "admin") return;
-    
     setSelectedItems(prev => 
       prev.includes(name) 
         ? prev.filter(item => item !== name) 
@@ -75,8 +74,6 @@ const MediaGallery = ({
   };
 
   const toggleSelectAll = () => {
-    if (mode !== "admin") return;
-    
     if (selectedItems.length === media.length) {
       setSelectedItems([]);
     } else {
@@ -85,7 +82,7 @@ const MediaGallery = ({
   };
 
   const deleteSelected = async () => {
-    if (mode !== "admin" || !selectedItems.length || deleting) return;
+    if (!selectedItems.length || deleting) return;
     
     const confirmDelete = window.confirm(
       `Are you sure you want to delete ${selectedItems.length} item(s)? This action cannot be undone.`
@@ -116,7 +113,7 @@ const MediaGallery = ({
 
   const deleteSingleItem = async (fileName: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (mode !== "admin" || deleting) return;
+    if (deleting) return;
     
     const confirmDelete = window.confirm(
       `Are you sure you want to delete "${fileName}"? This action cannot be undone.`
@@ -132,7 +129,7 @@ const MediaGallery = ({
       
       setMedia(prev => prev.filter(item => item.name !== fileName));
       setSelectedItems(prev => prev.filter(item => item !== fileName));
-       if (onDeleteSuccess) {
+      if (onDeleteSuccess) {
         onDeleteSuccess();
       }
     } catch (err) {
@@ -142,13 +139,96 @@ const MediaGallery = ({
     }
   };
 
-  const handleDownload = (url: string, filename: string) => {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Handle download for a single item using backend route
+  const handleDownload = async (fileName: string) => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3000/s3/download/${eventId}/${fileName}`,
+        {
+          responseType: 'blob',
+          withCredentials: true
+        }
+      );
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError('Failed to download file');
+    }
+  };
+
+  // Handle bulk download using backend route
+
+  //download individual files with multiple requests . Not Viable
+
+
+// const handleBulkDownload = async () => {
+//   if (!selectedItems.length || downloading) return;
+  
+//   try {
+//     setDownloading(true);
+    
+//     // Get signed URLs from backend
+//     const response = await axios.post(
+//       `http://localhost:3000/s3/download-multiple-urls/${eventId}`,
+//       { fileNames: selectedItems },
+//       { withCredentials: true }
+//     );
+    
+//     // Create hidden iframe for each download
+//     for (const item of response.data) {
+//       const iframe = document.createElement("iframe");
+//       iframe.src = item.url;
+//       iframe.style.display = "none";
+//       document.body.appendChild(iframe);
+      
+//       // Clean up after delay
+//       setTimeout(() => {
+//         document.body.removeChild(iframe);
+//       }, 10000);
+//     }
+//   } catch (err) {
+//     setError('Failed to download media');
+//   } finally {
+//     setDownloading(false);
+//   }
+// };
+
+  // Handle ZIP download using backend route
+  const handleZipDownload = async () => {
+    if (!selectedItems.length || downloading) return;
+    
+    try {
+      setDownloading(true);
+      
+      const response = await axios.post(
+        `http://localhost:3000/s3/download-multiple-zip/${eventId}`,
+        { fileNames: selectedItems },
+        {
+          responseType: 'blob',
+          withCredentials: true
+        }
+      );
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${eventId}_media.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError('Failed to create zip file');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const isSelected = (name: string) => selectedItems.includes(name);
@@ -180,44 +260,72 @@ const MediaGallery = ({
 
   return (
     <div>
-      {/* Selection Control Bar - Only in admin mode */}
-      {mode === "admin" && (
-        <div className="sticky top-0 z-10 bg-gray-100 p-3 mb-4 rounded-lg shadow flex justify-between items-center">
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              checked={allSelected}
-              ref={input => {
-                if (input) {
-                  input.indeterminate = someSelected;
-                }
-              }}
-              onChange={toggleSelectAll}
-              className="h-5 w-5 mr-3"
-            />
-            <span className="text-sm font-medium">
-              {selectedItems.length > 0 
-                ? `${selectedItems.length} item${selectedItems.length !== 1 ? 's' : ''} selected`
-                : 'Select media'}
-            </span>
-          </div>
-          
-          {selectedItems.length > 0 && (
-            <button
-              onClick={deleteSelected}
-              disabled={deleting}
-              className="flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 disabled:opacity-50"
+      {/* Selection Control Bar */}
+      <div className="sticky top-0 z-10 bg-gray-100 p-3 mb-4 rounded-lg shadow flex flex-wrap justify-between items-center gap-2">
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            ref={input => {
+              if (input) {
+                input.indeterminate = someSelected;
+              }
+            }}
+            onChange={toggleSelectAll}
+            className="h-5 w-5 mr-3"
+          />
+          <span className="text-sm font-medium">
+            {selectedItems.length > 0 
+              ? `${selectedItems.length} item${selectedItems.length !== 1 ? 's' : ''} selected`
+              : 'Select media'}
+          </span>
+        </div>
+        
+        {selectedItems.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {/* <button
+              onClick={handleBulkDownload}
+              disabled={downloading}
+              className="flex items-center gap-2 bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 disabled:opacity-50"
             >
-              {deleting ? (
+              {downloading ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
               ) : (
-                <Trash2 size={18} />
+                <Download size={18} />
               )}
-              Delete Selected
+              Download Selected
+            </button> */}
+            
+            <button
+              onClick={handleZipDownload}
+              disabled={downloading}
+              className="flex items-center gap-2 bg-purple-500 text-white px-3 py-1 rounded-md hover:bg-purple-600 disabled:opacity-50"
+            >
+              {downloading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+              ) : (
+                <Download size={18} />
+              )}
+              Download as ZIP
             </button>
-          )}
-        </div>
-      )}
+            
+            {mode === "admin" && (
+              <button
+                onClick={deleteSelected}
+                disabled={deleting}
+                className="flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 disabled:opacity-50"
+              >
+                {deleting ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                ) : (
+                  <Trash2 size={18} />
+                )}
+                Delete Selected
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
         {media.map((item) => (
@@ -225,23 +333,21 @@ const MediaGallery = ({
             key={item.url} 
             className={`
               relative group aspect-square rounded-lg overflow-hidden
-              ${mode === "admin" ? "cursor-pointer" : ""}
-              ${isSelected(item.name) ? 'ring-4 ring-blue-500' : mode === "admin" ? 'hover:ring-2 hover:ring-blue-300' : ''}
+              cursor-pointer
+              ${isSelected(item.name) ? 'ring-4 ring-blue-500' : 'hover:ring-2 hover:ring-blue-300'}
             `}
             onClick={() => toggleSelectItem(item.name)}
           >
-            {/* Selection checkbox - Admin only */}
-            {mode === "admin" && (
-              <div 
-                className={`absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full 
-                  ${isSelected(item.name) ? 'bg-blue-500' : 'bg-white/80 hover:bg-white'}
-                `}
-              >
-                {isSelected(item.name) && (
-                  <div className="text-white font-bold">✓</div>
-                )}
-              </div>
-            )}
+            {/* Selection checkbox */}
+            <div 
+              className={`absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full 
+                ${isSelected(item.name) ? 'bg-blue-500' : 'bg-white/80 hover:bg-white'}
+              `}
+            >
+              {isSelected(item.name) && (
+                <div className="text-white font-bold">✓</div>
+              )}
+            </div>
             
             {/* Delete button - Admin only */}
             {mode === "admin" && (
@@ -253,10 +359,13 @@ const MediaGallery = ({
               </button>
             )}
             
-            {/* Download button - Public mode */}
-            {mode === "public" && showDownload && (
+            {/* Download button - Single item download */}
+            {showDownload && (
               <button
-                onClick={() => handleDownload(item.url, item.name)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(item.name);
+                }}
                 className="absolute bottom-2 right-2 z-10 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700"
               >
                 <Download size={16} />

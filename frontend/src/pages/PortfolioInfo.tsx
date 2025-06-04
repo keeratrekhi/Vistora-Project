@@ -1,9 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { PortfolioDto, PortfolioInfoModel } from "../models/Portfolio";
+import React, { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { createPortfolio, getPortfolio } from "@/services/DashboardService";
+import { PortfolioDto, PortfolioInfoModel } from "../models/Portfolio";
 
-const PortfolioInfo = () => {
+interface CoverFile {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
+const PortfolioInfo: React.FC = () => {
   const [formData, setFormData] = useState<PortfolioInfoModel>({
     generalInfo: {
       name: "",
@@ -30,37 +37,79 @@ const PortfolioInfo = () => {
   const [portfolio, setPortfolio] = useState<PortfolioDto | null>(null);
   const [editMode, setEditMode] = useState(false);
 
+  // Cover state and uploading flag
+  const [cover, setCover] = useState<CoverFile | null>(null);
+  const [uploading, setUploading] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const { currentUser } = useSelector(
     (state: {
       user: {
-        currentUser: {
-          id: string;
-        };
+        currentUser: { id: string };
       };
     }) => state.user
   );
+  const userId = currentUser.id;
+
+  // Fetch portfolio JSON by userId
+  useEffect(() => {
+    if (!userId) return;
+
+    const fetchPortfolio = async () => {
+      try {
+        const data = await getPortfolio(userId);
+        setPortfolio(data);
+      } catch (err) {
+        console.error("Error fetching portfolio:", err);
+      }
+    };
+
+    fetchPortfolio();
+  }, [userId]);
+
+  // Fetch cover for this userId & portfolio.name (if exists)
+  const fetchCover = async (portfolioName: string) => {
+    if (!portfolioName || !userId) {
+      setCover(null);
+      return;
+    }
+    try {
+  const res = await fetch(
+    `http://localhost:3000/s3/portfoliocover/${encodeURIComponent(portfolioName)}?userId=${encodeURIComponent(userId)}`,
+    { credentials: "include" });
+      if (!res.ok) throw new Error(`Status ${res.status}`);
+      const json = await res.json();
+      const covers: CoverFile[] = json.covers;
+      setCover(covers.length > 0 ? covers[0] : null);
+    } catch (err) {
+      console.error("Error fetching cover:", err);
+      setCover(null);
+    }
+  };
+
+  // Whenever portfolio is fetched (and has a name), fetch its cover
+  useEffect(() => {
+    if (portfolio?.name) {
+      fetchCover(portfolio.name);
+    }
+  }, [portfolio]);
 
   const handleInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const keys = name.split("."); // Split the nested keys (e.g., "generalInfo.name")
-
+    const keys = name.split(".");
     setFormData((prev) => {
-      const updatedFormData = { ...prev };
-      let current = updatedFormData;
-
-      // Traverse to the nested property (but not the last one)
+      const updated = { ...prev };
+      let current: any = updated;
       for (let i = 0; i < keys.length - 1; i++) {
         current = current[keys[i]];
       }
-
-      // Set the value at the last key
       current[keys[keys.length - 1]] = value;
-      return updatedFormData;
+      return updated;
     });
   };
 
-  // Populate formData with fetched portfolio info for editing
   const handleEdit = () => {
+    if (!portfolio) return;
     setFormData({
       generalInfo: {
         name: portfolio.name || "",
@@ -86,51 +135,102 @@ const PortfolioInfo = () => {
     setEditMode(true);
   };
 
-  const handlesubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (
+      !formData.generalInfo.name.trim() ||
+      !formData.generalInfo.contact.trim() ||
+      !formData.generalInfo.email.trim() ||
+      !formData.generalInfo.description.trim()
+    ) {
+      window.alert("Name, Phone, Email, and Description are required.");
+      return;
+    }
+
     try {
-      if (
-        !formData.generalInfo.name ||
-        !formData.generalInfo.contact ||
-        !formData.generalInfo.email ||
-        !formData.generalInfo.description
-      ) {
-        alert("Name, Phone Number, Email, and Description are required.");
-        return;
-      }
+      // Create or update portfolio on backend
       await createPortfolio({
-        userId: currentUser.id,
+        userId,
         generalInfo: formData.generalInfo,
         socialLinks: formData.socialLinks,
       } as PortfolioInfoModel);
 
-      const portfolio = await getPortfolio(currentUser.id);
-      setPortfolio(portfolio);
+      // Re-fetch portfolio JSON
+      const refreshed = await getPortfolio(userId);
+      setPortfolio(refreshed);
       setEditMode(false);
-    } catch (error) {
-      console.error("error submitting form", error);
+    } catch (err: any) {
+      if (
+        err.response?.status === 400 &&
+        err.response?.data?.message?.includes("already taken")
+      ) {
+        window.alert("Sorry, that portfolio name is already taken. Please choose another.");
+      } else {
+        console.error("Error submitting form:", err);
+        window.alert("An unexpected error occurred. Please try again.");
+      }
     }
   };
 
-  useEffect(() => {
-    const fetchPortfolio = async () => {
-      try {
-        const portfolioResponse = await getPortfolio(currentUser.id);
-        setPortfolio(portfolioResponse);
-      } catch (error) {
-        console.error("Error fetching portfolio:", error);
+  // Upload cover handler
+const handleUploadCover = async () => {
+  if (!fileInputRef.current?.files?.[0] || !portfolio?.name) return;
+  const file = fileInputRef.current.files[0];
+  const formDataFile = new FormData();
+  formDataFile.append("file", file); // Changed from "coverImage" to "file"
+
+  try {
+    setUploading(true);
+ const res = await fetch(
+    `http://localhost:3000/s3/uploadportfoliocover/${encodeURIComponent(portfolio.name)}?userId=${encodeURIComponent(userId)}`,
+      {
+        method: "POST",
+        body: formDataFile,
+        credentials: "include"
       }
-    };
-    if (currentUser?.id) {
-      fetchPortfolio();
+    );
+      if (!res.ok) {
+        const errJson = await res.json();
+        throw new Error(errJson.error || `Upload failed (${res.status})`);
+      }
+      await fetchCover(portfolio.name);
+      fileInputRef.current.value = "";
+    } catch (err: any) {
+      console.error("Upload cover error:", err);
+      alert("Failed to upload cover: " + err.message);
+    } finally {
+      setUploading(false);
     }
-  }, [currentUser]);
+  };
+
+  // Delete cover handler
+  const handleDeleteCover = async () => {
+    if (!cover || !portfolio?.name) return;
+    if (!window.confirm("Are you sure you want to delete the cover image?")) return;
+
+    try {
+    const res = await fetch(
+    `http://localhost:3000/s3/portfoliocover/${encodeURIComponent(portfolio.name)}/${encodeURIComponent(cover.name)}?userId=${encodeURIComponent(userId)}`,
+        { method: "DELETE",
+          credentials:"include"
+         }
+      );
+      if (!res.ok) {
+        const errJson = await res.json();
+        throw new Error(errJson.error || `Delete failed (${res.status})`);
+      }
+      setCover(null);
+    } catch (err: any) {
+      console.error("Delete cover error:", err);
+      alert("Failed to delete cover: " + err.message);
+    }
+  };
 
   return (
     <div className="">
       {portfolio && !editMode ? (
-        <div className="text-black">
+        <div className="text-black space-y-4">
           <p>
             <strong>Name:</strong> {portfolio.name}
           </p>
@@ -151,47 +251,88 @@ const PortfolioInfo = () => {
             <strong>Social Links:</strong>
           </p>
           <p>
-            <strong>Facebook:</strong>
-            {portfolio.facebookLink}
+            <strong>Facebook:</strong> {portfolio.facebookLink}
           </p>
           <p>
-            <strong>Twitter:</strong>
-            {portfolio.twitterLink}
+            <strong>Twitter:</strong> {portfolio.twitterLink}
           </p>
           <p>
-            <strong>Insta:</strong>
-            {portfolio.instagramLink}
+            <strong>Instagram:</strong> {portfolio.instagramLink}
           </p>
           <p>
-            <strong>Youtube:</strong>
-            {portfolio.youtubeLink}
+            <strong>YouTube:</strong> {portfolio.youtubeLink}
           </p>
           <p>
-            <strong>Website:</strong>
-            {portfolio.websiteLink}
+            <strong>Website:</strong> {portfolio.websiteLink}
           </p>
 
-          <button
-            className="hover:shadow-form w-full mt-2 rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white outline-none"
-            onClick={handleEdit}
-          >
-            Update Information
-          </button>
-
-          <a
-            href={`/portfolio/${currentUser.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <button className="hover:shadow-form w-full mt-2 rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white outline-none">
-              PortFolio
+          <div className="flex flex-col space-y-2">
+            <button
+              onClick={handleEdit}
+              className="hover:shadow-form w-full rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white"
+            >
+              Update Information
             </button>
-          </a>
+
+            <a
+              href={`/portfolio/${encodeURIComponent(portfolio.name)}?userId=${encodeURIComponent(userId)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <button className="hover:shadow-form w-full rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white">
+                View Portfolio
+              </button>
+            </a>
+
+            {/* COVER UPLOAD/DELETE SECTION */}
+            <div className="pt-4 border-t border-gray-200">
+              <p className="font-semibold mb-2">Cover Image</p>
+
+              {cover ? (
+                <div className="space-y-2">
+                  {/* Preview */}
+                  <div className="w-full max-w-sm h-40 bg-gray-100 overflow-hidden rounded-md">
+                    <img
+                      src={cover.url}
+                      alt="Current Cover"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    onClick={handleDeleteCover}
+                    className="w-full max-w-sm text-white bg-red-600 hover:bg-red-700 rounded-md py-2"
+                  >
+                    Delete Cover
+                  </button>
+                </div>
+              ) : (
+                <p className="text-gray-500 mb-2">No cover image uploaded yet.</p>
+              )}
+
+              <label className="inline-flex items-center max-w-sm w-full bg-white bg-opacity-20 hover:bg-opacity-30 rounded-md cursor-pointer py-2 px-4 mt-2">
+                <span>{cover ? "Replace Cover" : "Upload Cover"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  ref={fileInputRef}
+                  onChange={() => {
+                    if (fileInputRef.current?.files?.[0]) {
+                      handleUploadCover();
+                    }
+                  }}
+                  disabled={uploading}
+                />
+              </label>
+            </div>
+          </div>
         </div>
       ) : (
+        // EDIT MODE: show form to enter portfolio info
         <div className="flex items-center justify-center p-12">
           <div className="mx-auto w-full max-w-[550px] ">
-            <form>
+            <form onSubmit={handleSubmit}>
+              {/* Company Name */}
               <div className="mb-5">
                 <label
                   htmlFor="name"
@@ -210,6 +351,8 @@ const PortfolioInfo = () => {
                   className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                 />
               </div>
+
+              {/* Description */}
               <div className="mb-5">
                 <label
                   htmlFor="description"
@@ -229,6 +372,7 @@ const PortfolioInfo = () => {
                 />
               </div>
 
+              {/* Phone */}
               <div className="mb-5">
                 <label
                   htmlFor="phone"
@@ -246,6 +390,8 @@ const PortfolioInfo = () => {
                   className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                 />
               </div>
+
+              {/* Email */}
               <div className="mb-5">
                 <label
                   htmlFor="email"
@@ -264,6 +410,7 @@ const PortfolioInfo = () => {
                 />
               </div>
 
+              {/* Address */}
               <div className="mb-5 pt-3">
                 <label className="mb-5 block text-base font-medium text-[#07074D]">
                   Address Details
@@ -276,7 +423,7 @@ const PortfolioInfo = () => {
                         type="text"
                         name="generalInfo.address.area"
                         id="area"
-                        value={formData.generalInfo.address?.area}
+                        value={formData.generalInfo.address.area}
                         placeholder="Enter area"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -289,7 +436,7 @@ const PortfolioInfo = () => {
                         type="text"
                         name="generalInfo.address.city"
                         id="city"
-                        value={formData.generalInfo.address?.city}
+                        value={formData.generalInfo.address.city}
                         placeholder="Enter city"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -302,7 +449,7 @@ const PortfolioInfo = () => {
                         type="text"
                         name="generalInfo.address.state"
                         id="state"
-                        value={formData.generalInfo.address?.state}
+                        value={formData.generalInfo.address.state}
                         placeholder="Enter state"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -315,7 +462,7 @@ const PortfolioInfo = () => {
                         type="text"
                         name="generalInfo.address.country"
                         id="country"
-                        value={formData.generalInfo.address?.country}
+                        value={formData.generalInfo.address.country}
                         placeholder="Enter country"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -327,8 +474,8 @@ const PortfolioInfo = () => {
                         onChange={handleInfoChange}
                         type="text"
                         name="generalInfo.address.postalCode"
-                        id="post-code"
-                        value={formData.generalInfo.address?.postalCode}
+                        id="postalCode"
+                        value={formData.generalInfo.address.postalCode}
                         placeholder="Post Code"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -337,6 +484,7 @@ const PortfolioInfo = () => {
                 </div>
               </div>
 
+              {/* Social Links */}
               <div className="mb-5 pt-3">
                 <label className="mb-5 block text-base font-medium text-[#07074D]">
                   Social Media Links
@@ -349,7 +497,7 @@ const PortfolioInfo = () => {
                         type="text"
                         name="socialLinks.twitterLink"
                         id="twitter"
-                        value={formData.socialLinks?.twitterLink}
+                        value={formData.socialLinks.twitterLink}
                         placeholder="Twitter"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -362,7 +510,7 @@ const PortfolioInfo = () => {
                         type="text"
                         name="socialLinks.facebookLink"
                         id="facebook"
-                        value={formData.socialLinks?.facebookLink}
+                        value={formData.socialLinks.facebookLink}
                         placeholder="Facebook"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -375,7 +523,7 @@ const PortfolioInfo = () => {
                         type="text"
                         name="socialLinks.instagramLink"
                         id="instagram"
-                        value={formData.socialLinks?.instagramLink}
+                        value={formData.socialLinks.instagramLink}
                         placeholder="Instagram"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -388,8 +536,8 @@ const PortfolioInfo = () => {
                         type="text"
                         name="socialLinks.youtubeLink"
                         id="youtube"
-                        value={formData.socialLinks?.youtubeLink}
-                        placeholder="Youtube"
+                        value={formData.socialLinks.youtubeLink}
+                        placeholder="YouTube"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
                     </div>
@@ -401,7 +549,7 @@ const PortfolioInfo = () => {
                         type="text"
                         name="socialLinks.websiteLink"
                         id="website"
-                        value={formData.socialLinks?.websiteLink}
+                        value={formData.socialLinks.websiteLink}
                         placeholder="Website"
                         className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
                       />
@@ -409,45 +557,12 @@ const PortfolioInfo = () => {
                   </div>
                 </div>
               </div>
-              {/* 
-            <div className="mb-5">
-              <label
-                htmlFor="logo"
-                className="mb-3 block text-base font-medium text-[#07074D]"
-              >
-                Upload Logo
-              </label>
-              <input
-                onChange={handleInfoChange}
-                id="logo"
-                name="logo"
-                value={formData.logo}
-                type="file"
-                className="mt-2 block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-teal-500 file:py-2 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-teal-700 focus:outline-none disabled:pointer-events-none disabled:opacity-60"
-              />
-            </div>
 
-            <div className="mb-5">
-              <label
-                htmlFor="coverImage"
-                className="mb-3 block text-base font-medium text-[#07074D]"
-              >
-                Upload Cover Image
-              </label>
-              <input
-                onChange={handleInfoChange}
-                id="coverImage"
-                name="coverImage"
-                value={formData.coverImage}
-                type="file"
-                className="mt-2 block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-teal-500 file:py-2 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-teal-700 focus:outline-none disabled:pointer-events-none disabled:opacity-60"
-              />
-            </div> */}
-
-              <div>
+              {/* Save / Cancel */}
+              <div className="flex space-x-4">
                 <button
-                  className="hover:shadow-form w-full mt-2 rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white outline-none"
-                  onClick={handlesubmit}
+                  type="submit"
+                  className="hover:shadow-form w-full rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white"
                 >
                   Save Information
                 </button>
@@ -455,7 +570,7 @@ const PortfolioInfo = () => {
                 {portfolio && (
                   <button
                     type="button"
-                    className="hover:shadow-form w-full mt-2 rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white outline-none"
+                    className="hover:shadow-form w-full rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white"
                     onClick={() => setEditMode(false)}
                   >
                     Cancel

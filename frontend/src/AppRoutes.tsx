@@ -15,6 +15,7 @@ import {
   PROFILE_ROUTE,
   PLANS_ROUTE,
   CREATE_EVENT_ROUTE,
+  PUBLISHED_ROUTE,
 } from "./constants/RouteContant";
 import Login from "./pages/Auth/Login";
 // import Signup from "./pages/Auth/Signup";
@@ -30,7 +31,8 @@ import AdminEventPage from "./pages/Admin/AdminEventPage";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
 import { CreateEvent } from "./pages/Admin/CreateEvent";
-import EventGalleryPage from "./components/PublicEvent";
+import EventGalleryPage from "./components/EventGalleryPage";
+
 
 interface RouteObject {
   path: string,
@@ -93,7 +95,7 @@ export const AuthenticateRoutes: RouteObject[] = [
     withLayout : false
   },
 {
-  path: "/gallery/:id",
+  path: PUBLISHED_ROUTE,
   element: <EventGalleryPage />,
   withLayout: false
 },

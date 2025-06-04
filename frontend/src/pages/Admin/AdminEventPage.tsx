@@ -1,4 +1,6 @@
+
 import React, { useEffect, useState, useCallback } from "react";
+import axios from "axios";
 import { FiEdit2 } from "react-icons/fi";
 import { Event, EventMedia } from "../../models/Event";
 import { useNavigate, useParams } from "react-router-dom";
@@ -9,10 +11,24 @@ import DateWrapper from "@/utils/DateUtil";
 import FileUploader from "@/components/FileUploader";
 import MediaGallery from "@/components/MediaGallery";
 import Button from "@/components/Button";
+import QRCode from "react-qr-code";
+import EventCoverImage from "@/components/EventImageCover";
+
+interface UpdateEventPayload {
+  id: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  eventDate?: string;
+  isPublished?: boolean;
+  publishedUrl?: string;
+  coverImageUrl?: string;
+  
+}
 
 const AdminEventPage = () => {
   const navigate = useNavigate();
-  const { id : eventId } = useParams<{ id: string }>();
+  const { id: eventId } = useParams<{ id: string }>();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<Event | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
@@ -23,30 +39,9 @@ const AdminEventPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const displayFields = [
-    "title",
-    "description",
-    "eventDate",
-    "pin",
-    "location",
-  ];
+  const displayFields = ["title", "description", "eventDate", "pin", "location"];
 
-
-
-interface UpdateEventPayload {
-  id: string;
-  title?: string;
-  description?: string;
-  location?: string;
-  eventDate?: string;      // or Date | ISO string, whichever your API expects
-  isPublished?: boolean;
-  publishedUrl?: string;
-  // pin, coverImageUrl, etc, only if you intend to update them
-}
-
-
-
-  // Fetch event data
+  
   const fetchEventData = useCallback(async () => {
     if (!eventId) return;
     setIsLoading(true);
@@ -58,6 +53,8 @@ interface UpdateEventPayload {
       }
       setEvent(eventData);
       setMediaItems(eventData.media || []);
+      console.log("[AdminEventPage] fetched eventData.coverImageUrl:", eventData.coverImageUrl);
+      console.log("[AdminEventPage] fetched eventData.media:", eventData.media);
     } catch (error) {
       console.error("Failed to fetch event data:", error);
     } finally {
@@ -67,15 +64,14 @@ interface UpdateEventPayload {
 
   useEffect(() => {
     fetchEventData();
-  }, [eventId, fetchEventData]);
+  }, [eventId, fetchEventData, refreshKey]);
 
-  // Open modal and set form state
+
   const handleOpenEditModal = () => {
-    setEditForm({ ...event } as Event); 
+    setEditForm({ ...event } as Event);
     setIsEditModalOpen(true);
   };
 
-  // Close modal
   const handleCloseEditModal = () => {
     setIsEditModalOpen(false);
     setEditForm(null);
@@ -83,108 +79,105 @@ interface UpdateEventPayload {
 
   const isValidForm = (): boolean => {
     if (!editForm) return false;
-    
-    if (
-      !editForm.title?.trim()
-    ) {
+    if (!editForm.title?.trim()) {
       alert("Title should not be empty");
       return false;
     }
-    if (
-      !editForm.description?.trim()
-    ) {
+    if (!editForm.description?.trim()) {
       alert("Description should not be empty");
       return false;
     }
-    if (
-      !editForm.eventDate
-    ) {
+    if (!editForm.eventDate) {
       alert("Event date should not be empty");
       return false;
     }
-    if (
-      !editForm.location?.trim()
-    ) {
+    if (!editForm.location?.trim()) {
       alert("Location should not be empty");
       return false;
     }
     return true;
   };
 
-  // Save changes
-const handleSaveEdit = async () => {
-  if (!editForm || !isValidForm()) return;
+  const handleSaveEdit = async () => {
+    if (!editForm || !isValidForm()) return;
 
-  // Convert DateWrapper → "YYYY-MM-DD"
-  const formattedDate = (editForm.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
+    // Convert DateWrapper → "YYYY-MM-DD"
+    const formattedDate = (editForm.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
 
-  // Now payload has exactly the fields you want to update, plus `id`
-  const payloadToSend: UpdateEventPayload = {
-    id: editForm.id,
-    title: editForm.title!.trim(),
-    description: editForm.description!.trim(),
-    location: editForm.location!.trim(),
-    eventDate: formattedDate,
-    // (omit isPublished/publishedUrl unless you’re toggling publish status here)
-  };
+    const payloadToSend: UpdateEventPayload = {
+      id: editForm.id,
+      title: editForm.title!.trim(),
+      description: editForm.description!.trim(),
+      location: editForm.location!.trim(),
+      eventDate: formattedDate,
+    };
 
-  try {
-    await updateEvent(payloadToSend);
-    await fetchEventData();
-    setIsEditModalOpen(false);
-  } catch (err) {
-    alert("Failed to update event");
-  }
-};
-
-
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && event) {
-      const imageUrl = URL.createObjectURL(file);
-      setEvent({ ...event, coverImageUrl: imageUrl });
+    try {
+      await updateEvent(payloadToSend);
+      await fetchEventData();
+      setIsEditModalOpen(false);
+    } catch (err) {
+      alert("Failed to update event");
+      console.error(err);
     }
   };
 
-const handlePublish = async () => {
-  if (!event || !eventId) return;
+ 
+  const updateEventCoverImage = useCallback(
+    async (newCoverUrl: string | null) => {
+      if (!event || !eventId) return;
 
-  try {
-    const shareLink = `${window.location.origin}/gallery/${eventId}`;
+      // Preserve other required fields (e.g. eventDate) so updateEvent doesn't drop them
+      const eventDateString =
+        typeof event.eventDate === "string"
+          ? event.eventDate
+          : (event.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
 
-    // Convert event.eventDate → "YYYY-MM-DD" if it's a DateWrapper
-    const eventDateString =
-      typeof event.eventDate === "string"
-        ? event.eventDate
-        : (event.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
+      const payload: UpdateEventPayload = {
+        id: eventId,
+        coverImageUrl: newCoverUrl || "", // if null, send empty string
+        eventDate: eventDateString,
+      };
 
-    // Build a payload whose types match UpdateEventPayload exactly
-    const payloadToSend: UpdateEventPayload = {
-      id: eventId,
-      isPublished: true,
-      publishedUrl: shareLink,
-      eventDate: eventDateString,   // now it’s a string, not a DateWrapper
-      // …any other fields your API absolutely requires…
-    };
-
-    await updateEvent(payloadToSend);
-
-    await fetchEventData();
-    alert(`Event published successfully! Share this link: ${shareLink}`);
-  } catch (err) {
-    alert("Failed to publish event");
-  }
-};
+      try {
+        await updateEvent(payload);
+        // Re‐fetch so that event.coverImageUrl is up to date
+        await fetchEventData();
+      } catch (err) {
+        console.error("Failed to save new coverImageUrl to database:", err);
+      }
+    },
+    [event, eventId, fetchEventData]
+  );
 
 
-  const handleUploadSuccess = () => {
-    setRefreshKey((prev) => prev + 1);
+  const handlePublish = async () => {
+    if (!event || !eventId) return;
+
+    try {
+      const shareLink = `${window.location.origin}/gallery/${eventId}`;
+      const eventDateString =
+        typeof event.eventDate === "string"
+          ? event.eventDate
+          : (event.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
+
+      const payloadToSend: UpdateEventPayload = {
+        id: eventId,
+        isPublished: true,
+        publishedUrl: shareLink,
+        eventDate: eventDateString,
+      };
+
+      await updateEvent(payloadToSend);
+      await fetchEventData();
+      alert(`Event published successfully! Share this link: ${shareLink}`);
+    } catch (err) {
+      alert("Failed to publish event");
+      console.error(err);
+    }
   };
 
-  const handleDeleteSuccess = () => {
-    setRefreshKey((prev) => prev + 1);
-  };
-
+ 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -197,9 +190,7 @@ const handlePublish = async () => {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Event Not Found
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h2>
           <button
             onClick={() => navigate(ADMIN_EVENTS_ROUTE)}
             className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
@@ -218,25 +209,12 @@ const handlePublish = async () => {
         <div className="space-y-6">
           {/* Cover Image Section */}
           <div className="space-y-2">
-            <div className="relative group">
-              <img
-                src={event.coverImageUrl || IMAGE_NOT_FOUND_PATH}
-                alt="Cover"
-                className="w-full h-48 object-cover rounded-lg"
-              />
-              <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <div className="text-white flex items-center gap-2">
-                  <FiEdit2 size={20} />
-                  <span>Change Cover</span>
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleCoverImageChange}
-                />
-              </label>
-            </div>
+            <label className="text-sm font-bold">Cover Image</label>
+            <EventCoverImage
+              eventId={eventId}
+              currentCoverUrl={event.coverImageUrl || null}
+              onCoverImageChanged={updateEventCoverImage}
+            />
           </div>
 
           {/* Event Details */}
@@ -262,36 +240,54 @@ const handlePublish = async () => {
           >
             Edit Info
           </button>
+
+          {/* QR Code */}
+          {event.publishedUrl ? (
+            <QRCode
+              size={128}
+              style={{
+                height: "auto",
+                maxWidth: "100%",
+                width: "100%",
+              }}
+              value={event.publishedUrl}
+              viewBox={`0 0 256 256`}
+            />
+          ) : (
+            <p className="text-sm text-gray-600 mt-2">
+              Publish the event to see a QR code.
+            </p>
+          )}
         </div>
       </div>
 
       {/* Main Content - Media Management */}
       <div className="flex-1 overflow-auto flex flex-col p-6 bg-white">
-        <div className="flex justify-between"> 
+        <div className="flex justify-between">
           <h1 className="text-xl font-semibold text-slate-800 mb-4">
             Media Management
           </h1>
 
           {event.isPublished ? (
             <div className="flex gap-2">
-              <Button 
+              <Button
                 className="bg-green-600 hover:bg-green-700 text-white"
-                onClick={() => window.open(event.publishedUrl, '_blank')}
+                onClick={() => window.open(event.publishedUrl, "_blank")}
               >
                 View Published Site
               </Button>
-              <Button 
+              <Button
                 className="bg-gray-600 hover:bg-gray-700 text-white"
                 onClick={() => {
-                  navigator.clipboard.writeText(event.publishedUrl || '');
-                  alert('Link copied to clipboard!');
+                  navigator.clipboard.writeText(event.publishedUrl || "");
+                  alert("Link copied to clipboard!");
                 }}
               >
                 Copy Link
               </Button>
             </div>
           ) : (
-            <Button 
+            <Button
               className="bg-blue-600 hover:bg-blue-700 text-white"
               onClick={handlePublish}
             >
@@ -303,9 +299,9 @@ const handlePublish = async () => {
         {/* Centered FileUploader */}
         {eventId && (
           <div className="flex justify-center mb-6">
-            <FileUploader 
-              eventId={eventId} 
-              onUploadSuccess={handleUploadSuccess}  
+            <FileUploader
+              eventId={eventId}
+              onUploadSuccess={() => setRefreshKey((prev) => prev + 1)}
               refreshKey={refreshKey}
             />
           </div>
@@ -314,10 +310,10 @@ const handlePublish = async () => {
         {/* Media Gallery */}
         <div className="flex-1 overflow-auto">
           {eventId ? (
-            <MediaGallery 
-              eventId={eventId} 
-              key={refreshKey}  
-              onDeleteSuccess={handleDeleteSuccess} 
+            <MediaGallery
+              eventId={eventId}
+              key={refreshKey}
+              onDeleteSuccess={() => setRefreshKey((prev) => prev + 1)}
             />
           ) : (
             <div className="text-center text-gray-500">
@@ -351,8 +347,10 @@ const handlePublish = async () => {
                         type="date"
                         className="w-full p-2 rounded-md border-2 border-black shadow-sm"
                         value={
-                          editForm?.eventDate 
-                            ? (editForm.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD")
+                          editForm?.eventDate
+                            ? (editForm.eventDate as DateWrapper).getDisplayFormat(
+                                "YYYY-MM-DD"
+                              )
                             : ""
                         }
                         onChange={(e) =>

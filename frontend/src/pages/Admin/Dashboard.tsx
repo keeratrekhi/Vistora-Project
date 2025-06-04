@@ -6,7 +6,6 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSelector } from "react-redux";
 import QRCode from "react-qr-code";
-import { getPortfolioQrCode } from "@/services/DashboardService";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -22,16 +21,22 @@ const Dashboard = () => {
     }) => state.user
   );
 
-  // ------------ NEW: ref to hold the rendered <svg> ------------
   const qrContainerRef = useRef<HTMLDivElement>(null);
-  // -------------------------------------------------------------
-
-  const [portfolioQrCode, setPortfolioQrCode] = useState<string | null>(null);
+  
+  // Add portfolio state with proper type
+  const [portfolio, setPortfolio] = useState<{
+    id: string;
+    name: string;
+    portfolioQrCode: string;
+  } | null>(null);
+  
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
   const [storageData, setStorageData] = useState<{
     used: string;
     total: string;
     remaining: string;
   } | null>(null);
+  
   const [storageLoading, setStorageLoading] = useState(true);
 
   const formatBytes = (bytes: string): string => {
@@ -51,33 +56,50 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const fetchStorageData = async () => {
+    const fetchData = async () => {
       if (!currentUser?.id) return;
 
       try {
         setStorageLoading(true);
-        const response = await fetch(
-          `http://localhost:3000/api/user/${currentUser.id}`,
-          {
-            method: "GET",
-            credentials: "include",
-          }
+        setPortfolioLoading(true);
+        
+        // Fetch portfolio data
+        const portRes = await fetch(
+          `http://localhost:3000/api/portfolio/${currentUser.id}`,
+          { method: "GET", credentials: "include" }
         );
-        const data = await response.json();
-
-        if (response.ok) {
-          setStorageData(data);
+        
+        if (portRes.ok) {
+          const portData = await portRes.json();
+          setPortfolio(portData);
         } else {
-          console.error("Storage fetch error:", data.error);
+          const errorData = await portRes.json();
+          console.error("Portfolio fetch error:", errorData.message);
+          setPortfolio(null);
+        }
+
+        // Fetch storage data
+        const storageRes = await fetch(
+          `http://localhost:3000/api/user/${currentUser.id}`,
+          { method: "GET", credentials: "include" }
+        );
+        
+        if (storageRes.ok) {
+          const storageData = await storageRes.json();
+          setStorageData(storageData);
+        } else {
+          const errorData = await storageRes.json();
+          console.error("Storage fetch error:", errorData.error);
         }
       } catch (error) {
-        console.error("Error fetching storage:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setStorageLoading(false);
+        setPortfolioLoading(false);
       }
     };
 
-    fetchStorageData();
+    fetchData();
   }, [currentUser]);
 
   const getPercentage = () => {
@@ -92,49 +114,31 @@ const Dashboard = () => {
     if (currentUser && username !== currentUser.username) {
       navigate(`/dashboard/${currentUser.username}`, { replace: true });
     }
-
-    const fetchPortfolio = async () => {
-      try {
-        const qrCode = await getPortfolioQrCode(currentUser?.id);
-        setPortfolioQrCode(qrCode as string);
-      } catch (error) {
-        console.error("Error fetching portfolio:", error);
-      }
-    };
-
-    if (currentUser?.id) {
-      fetchPortfolio();
-    }
   }, [username, currentUser, navigate]);
 
-  // ------------ NEW: download handler ------------
+  // Handle QR code download
   const handleDownloadQRCode = () => {
     if (!qrContainerRef.current) return;
 
-    // 1) Find the <svg> inside our ref’d div
     const svgElement = qrContainerRef.current.querySelector("svg");
     if (!svgElement) return;
 
-    // 2) Serialize SVG to a string
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(svgElement);
 
-    // 3) Create a Blob from that string
     const blob = new Blob([svgString], {
       type: "image/svg+xml;charset=utf-8",
     });
 
-    // 4) Create a temporary URL and trigger download
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "portfolio-qr.svg"; // you can change the filename if you like
+    link.download = "portfolio-qr.svg";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-  // ------------------------------------------------
 
   return (
     <div className="container mx-auto">
@@ -193,7 +197,7 @@ const Dashboard = () => {
         <DashboardCard
           cardBody={
             <div className="flex flex-col h-full justify-between">
-              {portfolioQrCode ? (
+              {portfolio?.portfolioQrCode ? (
                 <div>
                   <div
                     ref={qrContainerRef}
@@ -206,14 +210,14 @@ const Dashboard = () => {
                         maxWidth: "100%",
                         width: "100%",
                       }}
-                      value={portfolioQrCode}
+                      value={portfolio.portfolioQrCode}
                       viewBox={`0 0 256 256`}
                     />
                   </div>
   
                   <div className="flex justify-center items-center gap-2 mt-3">
                     <Button
-                      onClick={handleDownloadQRCode} // hook up our download handler
+                      onClick={handleDownloadQRCode}
                       variant="default"
                       className="flex items-center gap-1 border-yellow-400 bg-yellow-400 text-gray-600 hover:bg-gray-700 hover:text-white hover:border-gray-700"
                     >
@@ -224,22 +228,36 @@ const Dashboard = () => {
               ) : (
                 <div className="h-50 flex justify-center py-4 bg-gray-100 rounded-lg border border-gray-200">
                   <div className="text-black">
-                    Create a Portfolio to get a QR Code
+                    {portfolioLoading 
+                      ? "Loading portfolio..." 
+                      : "Create a Portfolio to get a QR Code"}
                   </div>
                 </div>
               )}
 
+
+               
               <div className="mt-5 w-full">
                 <Button
                   variant="outline"
                   className="w-full flex items-center justify-between border-gray-600 text-gray-600 bg-white hover:bg-gray-700 hover:text-white rounded-md text-sm"
+                  onClick={() => {
+                    if (portfolio?.portfolioQrCode) {
+                      window.open(portfolio.portfolioQrCode, '_blank');
+                    }
+                  }}
                 >
+                  
                   <span className="w-65 overflow-hidden text-ellipsis">
-                    https://site.captus.cloud/{username}
+                    {/* Portfolio name in the span element */}
+                    {portfolioLoading 
+                      ? "Loading..." 
+                      : `https://site.captus.cloud/${portfolio?.name}` || "Your Portfolio"}
                   </span>
                   <ExternalLink size={15} />
                 </Button>
               </div>
+  
             </div>
           }
         />

@@ -1,4 +1,4 @@
-// components/EventCardBody.tsx
+
 import React from 'react'
 import EventCardActionButtons from './EventCardActionButtons'
 import { Image, UserRound, Video } from 'lucide-react'
