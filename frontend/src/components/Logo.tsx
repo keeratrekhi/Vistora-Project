@@ -15,7 +15,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md' }) => {
 
   return (
     <Link to="/" className={`font-bold ${sizeClasses[size]} neon-text`}>
-      Captus
+      Vistora
     </Link>
   );
 };

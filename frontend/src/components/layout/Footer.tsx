@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center space-x-2">
               <Camera className="h-8 w-8 text-primary-600" />
-              <span className="text-xl font-bold text-gray-900">Captus</span>
+              <span className="text-xl font-bold text-gray-900">Vistora</span>
             </Link>
             <p className="mt-4 text-gray-600">
               Advanced photo management for professionals and enthusiasts.
@@ -70,7 +70,7 @@ const Footer: React.FC = () => {
         {/* Copyright */}
         <div className="mt-12 pt-8 border-t border-gray-200">
           <p className="text-gray-500 text-sm text-center">
-            &copy; {year} Captus. All rights reserved.
+            &copy; {year} Vistora. All rights reserved.
           </p>
         </div>
       </Container>

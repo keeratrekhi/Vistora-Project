@@ -83,7 +83,7 @@ export const EventFooter: React.FC<EventFooterProps> = ({ orgInfo }) => {
 
         <div className="mt-8 pt-8 border-t border-gray-700 flex items-center justify-center space-x-2">
           <span>Powered by</span>
-          <span className="font-bold">Captus</span>
+          <span className="font-bold">Vistora</span>
           <Camera className="h-5 w-5" />
         </div>
       </div>

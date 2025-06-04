@@ -252,7 +252,7 @@ const Dashboard = () => {
                     {/* Portfolio name in the span element */}
                     {portfolioLoading 
                       ? "Loading..." 
-                      : `https://site.captus.cloud/${portfolio?.name}` || "Your Portfolio"}
+                      : `https://site.Vistora.cloud/${portfolio?.name}` || "Your Portfolio"}
                   </span>
                   <ExternalLink size={15} />
                 </Button>
