@@ -1,15 +1,25 @@
-
-
 import React, { useEffect, useState } from "react";
-import EventsHeader from "../../components/EventsHeader";
 import { getAllEvents } from "../../services/EventsService";
-import { sampleEvents } from "../../DummyData";
 import { Event } from "../../models/Event";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Search, Plus, Calendar } from "lucide-react";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import EventCard from "@/components/EventCard";
+import NoEventsIllustration from "@/assets/illustrations/NoEventsIllustration";
+import toast from "react-hot-toast";
 
 const AdminEventsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<Event[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isDeletingEvent, setIsDeletingEvent] = useState<boolean>(false);
+  const [activeFilter, setActiveFilter] = useState<
+    "All" | "Published" | "Unpublished"
+  >("All");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvents();
@@ -17,152 +27,173 @@ const AdminEventsPage: React.FC = () => {
 
   const fetchEvents = async () => {
     try {
+      setLoading(true);
       const eventsData = await getAllEvents();
       setEvents(eventsData);
     } catch (error) {
-      console.error("Error occurred while fetching events:", error);
-      setEvents(sampleEvents);
+      toast.error("Failed to fetch events. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
+  const filteredEvents = events.filter((event) => {
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter =
+      activeFilter === "All" ||
+      (activeFilter === "Published" && event.isPublished) ||
+      (activeFilter === "Unpublished" && !event.isPublished);
+    return matchesSearch && matchesFilter;
+  });
+
+  const handleDeleteEvent = (eventId: string) => {
+    setEventToDelete(eventId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
     try {
-      // Delete entire event folder (media + cover)
-      await axios.delete(`http://localhost:3000/s3/media/event/${eventId}`, {
-        withCredentials: true,
-      });
-      setEvents((prev) => prev.filter((e) => e.id !== eventId));
-      console.log(`Event ${eventId} deleted successfully`);
+      if (eventToDelete) {
+        setIsDeletingEvent(true);
+        // Delete entire event folder (media + cover)
+        await axios.delete(
+          `http://localhost:3000/s3/media/event/${eventToDelete}`,
+          {
+            withCredentials: true,
+          }
+        );
+        setEvents((prev) => prev.filter((e) => e.id !== eventToDelete));
+        toast.success('Event Deleted');
+      }
     } catch (error) {
-      console.error("Delete failed:", error);
-      alert("Failed to delete event. Please try again.");
+      toast.error("Failed to delete event. Please try again later.");
+    } finally {
+      setIsDeletingEvent(false);
+      setShowDeleteModal(false);
+      setEventToDelete(null);
     }
   };
-
   return (
-    <div>
-      <EventsHeader />
-      <div className="bg-gray-400 h-[0.1px]" />
-      <div className="mt-7 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {events.map((event) => (
-          <EventCard key={event.id} event={event} onDelete={handleDeleteEvent} />
-        ))}
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="bg-white rounded-xl shadow-md p-5">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-semibold text-slate-800 ">My Events</h1>
+
+          {/* Search Bar */}
+          <div className="relative flex-1 max-w-md mx-8">
+            <input
+              type="text"
+              placeholder="Search events..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent "
+            />
+            <Search className="absolute right-3 top-2.5 w-5 h-5 text-slate-400" />
+          </div>
+
+          {/* Create Event Button */}
+          <button
+            onClick={() => navigate("/create-event")}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 "
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create Event</span>
+          </button>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="flex space-x-1 border-b border-gray-200">
+          {(["All", "Published", "Unpublished"] as const).map((filter) => (
+            <button
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`px-4 py-2 font-medium transition-colors  ${
+                activeFilter === filter
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-800"
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Main Content */}
+      <div className="bg-white rounded-xl shadow-md p-5">
+        {loading && <LoadingSpinner message="Fetching events…" />}
+
+        {!loading && filteredEvents.length === 0 && (
+          <div className="text-center py-12">
+            <NoEventsIllustration />
+            <h3 className="text-lg font-semibold text-slate-800 mb-2 ">
+              You don't have any events
+            </h3>
+            <button
+              onClick={() => navigate("/create-event")}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors "
+            >
+              <div className="flex items-center gap-1">
+                <Plus className="w-4 h-4" />
+                <span>Create Event</span>
+              </div>
+            </button>
+          </div>
+        )}
+
+        {!loading && filteredEvents.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEvents.map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                onDelete={handleDeleteEvent}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal &&
+        (isDeletingEvent ? (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <LoadingSpinner message="Deleting event..." />
+            </div>
+          </div>
+        ) : (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4 ">
+                Delete Event
+              </h3>
+              <p className="text-slate-600 mb-6 ">
+                Are you sure you want to delete this event? This action cannot
+                be undone.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 text-slate-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors "
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors "
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
     </div>
   );
 };
 
 export default AdminEventsPage;
-
-
-
-interface EventCardProps {
-  event: Event;
-  onDelete: (eventId: string) => void;
-}
-
-const EventCard: React.FC<EventCardProps> = ({ event, onDelete }) => {
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [isCoverLoading, setIsCoverLoading] = useState(true);
-  const [coverError, setCoverError] = useState<boolean>(false);
-
-  // 1) Fetch cover URL on mount
-  useEffect(() => {
-    let cancelled = false;
-    const fetchCover = async () => {
-      setIsCoverLoading(true);
-      setCoverError(false);
-      try {
-        const res = await axios.get<{
-          covers: Array<{ url: string; name: string; type: string; size: number }>;
-        }>(`http://localhost:3000/s3/eventscover/${event.id}`, {
-          withCredentials: true,
-        });
-        if (!cancelled) {
-          const covers = res.data.covers;
-          if (Array.isArray(covers) && covers.length > 0) {
-            setCoverUrl(covers[0].url);
-          } else {
-            setCoverUrl(null);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load cover:", err);
-        if (!cancelled) {
-          setCoverError(true);
-          setCoverUrl(null);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsCoverLoading(false);
-        }
-      }
-    };
-    fetchCover();
-    return () => {
-      cancelled = true;
-    };
-  }, [event.id]);
-
-  // 2) Delete handler (prevent Link navigation)
-  const handleDelete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      onDelete(event.id);
-    }
-  };
-
-  // Placeholder used if cover fails or is missing
-  const placeholder = "/fallback-cover.jpg";
-
-  return (
-    <div className="relative h-full bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
-      {/* Delete button */}
-      <button
-        onClick={handleDelete}
-        className="absolute top-3 right-3 z-10 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-        aria-label="Delete event"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-          <path
-            fillRule="evenodd"
-            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </button>
-
-      <Link to={`/events/${event.id}`} className="block h-full">
-        {/* Cover Image */}
-        <div className="h-48 w-full overflow-hidden rounded-lg mb-4 bg-gray-100">
-          {isCoverLoading ? (
-            <div className="h-full flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
-            </div>
-          ) : coverUrl && !coverError ? (
-            <img
-              src={coverUrl}
-              alt={`Cover for ${event.title}`}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                setCoverError(true);
-                (e.currentTarget as HTMLImageElement).src = placeholder;
-              }}
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center bg-gray-200">
-              <span className="text-gray-500">No cover image</span>
-            </div>
-          )}
-        </div>
-
-        {/* Title & Description */}
-        <div className="px-4 pb-4">
-          <h3 className="text-xl font-bold text-gray-800 mb-2">{event.title}</h3>
-          <p className="text-gray-600 line-clamp-2">{event.description}</p>
-        </div>
-      </Link>
-    </div>
-  );
-};

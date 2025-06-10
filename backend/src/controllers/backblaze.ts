@@ -537,7 +537,46 @@ function validateBigInt(value: any, defaultValue: bigint = 0n): bigint {
   return defaultValue;
 }
 
+
+
+
+// Helper function to get file info by fileName
 async function getFileInfoByFileName(fileName: string): Promise<any> {
+  await b2.authorize();
+  
+  try {
+    // First get the file ID using listFileNames
+    const listResponse = await b2.listFileNames({
+      bucketId: process.env.B2_BUCKET_ID!,
+      prefix: fileName,
+      delimiter: '/',
+      maxFileCount: 1,
+      startFileName: '' // Use empty string instead of undefined
+    });
+
+    const fileInfo = listResponse.data.files.find(
+      (file: any) => file.fileName === fileName
+    );
+    if (!fileInfo) {
+      return null;
+    }
+
+    // Now get the full file info with version details
+    const fileDetails = await b2.getFileInfo({
+      fileId: fileInfo.fileId
+    });
+
+    return fileDetails.data;
+  } catch (error) {
+    console.error("Error in getFileInfoByFileName:", error);
+    throw error;
+  }
+}
+
+
+
+
+async function getcoverFileInfoByFileName(fileName: string): Promise<any> {
   await b2.authorize();
   
   try {
@@ -624,7 +663,7 @@ export async function deleteEventFolder(eventId: string): Promise<bigint> {
 
     return totalSize;
   } catch (error:any) {
-    console.error(`⛔ Error deleting event folder ${eventId}:`, error);
+    console.error(` Error deleting event folder ${eventId}:`, error);
     throw new Error(`Failed to delete event folder: ${error.message}`);
   }
 }
@@ -667,7 +706,7 @@ export async function deleteSinglecoverFile(
   console.log(`Deleting single file: ${fullFileName}`);
 
   try {
-    const fileInfo = await getFileInfoByFileName(fullFileName);
+    const fileInfo = await getcoverFileInfoByFileName(fullFileName);
     if (!fileInfo) {
       throw new Error("File not found");
     }

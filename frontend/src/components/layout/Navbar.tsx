@@ -1,139 +1,101 @@
+import React, { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import { LogOut, User } from "lucide-react";
+import VistoraLogo from "@/assets/logos/captus-name-logo.jpg";
 
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import Logo from '../Logo';
-import { Button } from '../../components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
-import { useDispatch, useSelector } from 'react-redux';
-import { SignOutSuccess } from '@/redux/user/slice';
+interface NavbarProps {
+  onProfileClick: () => void;
+  onLogout: () => void;
+}
 
-const Navbar: React.FC = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const location = useLocation();
- const { currentUser } = useSelector((state : {
-     user: {
-      currentUser: {
-        id:string,
-      }
-     }
-   })=>state.user);
-
-  const navigate=useNavigate();
-  const dispatch=useDispatch();
-
-  const handleLogout = async () => {
-    try {
-      const res = await fetch('http://localhost:3000/api/auth/signout', {
-        method: 'POST',
-        credentials: 'include', 
-      });
-  
-      const data = await res.json(); 
-  
-      if (!res.ok) {
-        console.log(data.message);
-      } else {
-        dispatch(SignOutSuccess());
-        console.log("Logged out successfully");
-        navigate("/login");
-      }
-    } catch (error) {
-      console.error("Logout failed:", error.message);
-    }
-  };
-  
+const Navbar: React.FC<NavbarProps> = ({ onProfileClick, onLogout }) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  const handleProfileClick = () => {
+    setIsDropdownOpen(false);
+    onProfileClick();
+  };
 
-  if (isAuthPage) {
-    return null;
-  }
+  const handleLogoutClick = () => {
+    setIsDropdownOpen(false);
+    onLogout();
+  };
+
+  const { currentUser } = useSelector(
+    (state: {
+      user: {
+        currentUser: {
+          id: string;
+          username: string;
+        };
+      };
+    }) => state.user
+  );
 
   return (
-<nav
-  className={`fixed top-0 left-0 w-full z-50 bg-gradient-to-l from-blue-100 via-purple-100 to-pink-100 transition-all duration-300 
-    ${isScrolled ? 'py-4 backdrop-blur-md shadow-md' : 'py-4'}
-  `}
->
-
-      <div className="container mx-auto px-4 flex justify-between items-center">
-        <Logo size="md" />
-        
-        <div className="flex items-center space-x-6">
-          {/* <div className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-slate-700 hover:text-neon-purple transition-colors">
-              Home
-            </Link>
-            <Link to="/#features" className="text-slate-700 hover:text-neon-purple transition-colors">
-              Features
-            </Link>
-            <Link to="/#pricing" className="text-slate-700 hover:text-neon-purple transition-colors">
-              Pricing
-            </Link>
-          </div> */}
-          
-          
-          {currentUser ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="p-0 rounded-full hover:bg-transparent">
-                  <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-neon-purple object-contain  transition-all">
-                    
-                    {/* set user image here */}
-                    
-                    <AvatarImage src={currentUser.image} alt="Profile" />
-
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-blue-100">
-                <DropdownMenuItem
-                  onClick={() => navigate('/profile/:id')}
-                  className="cursor-pointer hover:bg-neon-purple/10 text-slate-700"
-                >
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="cursor-pointer hover:bg-neon-purple/10 text-red-500"
-                >
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <div className="flex items-center space-x-3">
-              <Link to="/login">
-                <Button variant="ghost" className="hover:text-neon-purple hover:bg-neon-purple/10 transition-all">
-                  Login
-                </Button>
-              </Link>
-              <Link to="/signup">
-                <Button className="bg-neon-purple hover:bg-neon-purple/90 text-white">
-                  Sign Up
-                </Button>
-              </Link>
-            </div>
-          )}
+    <nav className="fixed top-0 left-0 right-0 h-16 bg-gray-50 border-b border-gray-200 z-50 px-6 flex items-center justify-between shadow-sm">
+      {/* Left Section - Logo */}
+      <div className="flex items-center">
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-xl">
+          <img src={VistoraLogo} alt="Vistora" className="object-contain" />
         </div>
+      </div>
+
+      {/* Right Section - User Menu */}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="w-10 h-10 bg-gray-600 text-white rounded-full flex items-center justify-center font-medium text-sm hover:bg-opacity-90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+        >
+          {currentUser?.username?.substring(0, 2).toUpperCase() || "U"}
+        </button>
+
+        {/* Dropdown Menu */}
+        {isDropdownOpen && (
+          <div className="absolute right-0 top-12 w-60 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+            {/* User Info Section */}
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="font-semibold text-neutral text-base">Super User</p>
+              <p className="text-sm text-gray-500">superuser@Vistora.com</p>
+            </div>
+
+            {/* Navigation Options */}
+            <div className="py-1">
+              <button
+                onClick={handleProfileClick}
+                className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors text-neutral"
+              >
+                <User size={16} />
+                <span className="text-sm font-medium">Profile</span>
+              </button>
+
+              <button
+                onClick={handleLogoutClick}
+                className="w-full px-4 py-2 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors text-logout-red"
+              >
+                <LogOut size={16} />
+                <span className="text-sm font-medium">Logout</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

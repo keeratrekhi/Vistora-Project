@@ -1,180 +1,184 @@
-import { ADMIN_EVENTS_ROUTE, CREATE_EVENT_ROUTE } from "@/constants/RouteContant";
+import { ADMIN_EVENTS_ROUTE } from "@/constants/RouteContant";
 import { AccessType } from "@/enums/AccessType";
 import { CreateEventModel } from "@/models/Event";
 import { createEvent } from "@/services/EventsService";
 import DateWrapper from "@/utils/DateUtil";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import { useSelector } from "react-redux";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { z } from "zod";
+import FormInput from "@/components/ui/Form/FormInput";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 
-const eventInfo: CreateEventModel = {
-  title: "",
-  description: "",
-  eventDate: new DateWrapper(new Date()),
-  location: "",
-  coverImage: "",
-  isPublished: true,
-  accessType: AccessType.Public,
-};
+const formSchema = z.object({
+  title:      z.string().min(1, "Event title is required"),
+  description:z.string().optional(),
+  eventDate:  z.string().optional(),
+  location:   z.string().optional(),
+  requirePin: z.boolean().default(false),
+  pin:        z.string()
+                .regex(/^\d{4}$/, "PIN must be exactly 4 digits")
+                .optional(),
+});
+type FormData = z.infer<typeof formSchema>;
 
 export const CreateEvent = () => {
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<FormData>({ resolver: zodResolver(formSchema) });
+
+  // watch requirePin to toggle PIN input
+  const requirePin = watch("requirePin");
+
   const navigate = useNavigate();
   const { currentUser } = useSelector(
     (state: {
       user: {
-        currentUser: {
-          id: string;
-          username: string;
-        };
+        currentUser: { id: string; username: string };
       };
     }) => state.user
   );
-  const [info, setInfo] = useState<CreateEventModel>(eventInfo);
 
-  const handleInfoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-    setInfo((prevInfo: any) => updateModel(prevInfo, name, value));
+  const handleFormSubmit = async (data: FormData) => {
+    setIsCreatingEvent(true);
+    try {
+      await createEvent(
+        {
+          title:       data.title,
+          description: data.description || "",
+          eventDate:   new DateWrapper(data.eventDate || new Date()),
+          location:    data.location || "",
+          coverImage:  "",
+          isPublished: false,
+          accessType:  AccessType.Public,
+          pin:         data.requirePin ? Number(data.pin) : null,
+        } as CreateEventModel,
+        currentUser.id
+      );
+      toast.success("Event created successfully!");
+      navigate(ADMIN_EVENTS_ROUTE);
+    } catch {
+      toast.error("Error creating event. Please try again later.");
+    } finally {
+      setIsCreatingEvent(false);
+    }
   };
 
-  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-
-    // Wrap the selected date in a DateWrapper instance
-    const wrappedDate = new DateWrapper(value);
-
-    setInfo((prevInfo) => ({
-      ...prevInfo,
-      [name]: wrappedDate,
-    }));
-  };
-
-  function updateModel(
-    model: CreateEventModel,
-    path: string,
-    value: any
-  ): CreateEventModel {
-    const updatedModel = { ...model }; // Create shallow copy
-
-    const parts = path.split(".");
-    let current: any = updatedModel;
-
-    for (let i = 0; i < parts.length - 1; i++) {
-      const part = parts[i];
-      if (typeof current[part] === "object" && current[part] !== null) {
-        current = current[part] = { ...current[part] }; //create a shallow copy of the object at each level to avoid mutating original model.
-      } else {
-        console.error(`Invalid path: ${path}`);
-        return updatedModel; // Return the model without changes if path is invalid
-      }
-    }
-
-    const lastPart = parts[parts.length - 1];
-    if (lastPart in current) {
-      current[lastPart] = value;
-    } else {
-      console.error(`Invalid path: ${path}`);
-      return updatedModel; // Return the model without changes if path is invalid
-    }
-
-    return updatedModel;
+  if (isCreatingEvent) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <LoadingSpinner message="Creating event..." />
+        </div>
+      </div>
+    );
   }
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    try {
-      await createEvent(info, currentUser.id);
-      navigate(ADMIN_EVENTS_ROUTE);
-    } catch (err) {
-      console.error("Error creating event:", err);
-    }
-  };
-
   return (
-    <div className="flex items-center justify-center p-12">
-      <div className="mx-auto w-full max-w-[550px] ">
-        <form onSubmit={handleSubmit}>
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white rounded-xl shadow-md p-5">
+        <h1 className="text-2xl font-semibold text-slate-800 mb-6">
+          Create New Event
+        </h1>
+
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           {/* Title */}
-          <div className="mb-5">
-            <label
-              htmlFor="title"
-              className="mb-3 block text-base font-medium text-[#07074D]"
-            >
-              Event Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              onChange={handleInfoChange}
-              type="text"
-              name="title"
-              id="title"
-              value={info.title}
-              placeholder="Enter event title"
-              className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-              required
-            />
-          </div>
+          <FormInput
+            label="Title"
+            type="text"
+            name="title"
+            placeholder="Enter event title"
+            register={register}
+            error={errors.title}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.title ? "border-red-300" : "border-gray-300"
+            }`}
+          />
 
           {/* Description */}
-          <div className="mb-5">
-            <label
-              htmlFor="description"
-              className="mb-3 block text-base font-medium text-[#07074D]"
-            >
-              Description
-            </label>
-            <input
-              onChange={handleInfoChange}
-              type="text"
-              name="description"
-              id="description"
-              value={info.description}
-              placeholder="Enter event description"
-              className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-            />
-          </div>
+          <FormInput
+            label="Description"
+            type="textarea"
+            name="description"
+            placeholder="Enter event description"
+            register={register}
+            error={errors.description}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.description ? "border-red-300" : "border-gray-300"
+            }`}
+          />
 
           {/* Event Date */}
-          <div className="mb-5">
-            <label
-              htmlFor="eventDate"
-              className="mb-3 block text-base font-medium text-[#07074D]"
-            >
-              Event Date
-            </label>
-            <input
-              onChange={handleDateChange}
-              type="date"
-              name="eventDate"
-              id="eventDate"
-              value={info.eventDate.getDisplayFormat("YYYY-MM-DD")}
-              className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-            />
-          </div>
+          <FormInput
+            label="Event Date"
+            type="date"
+            name="eventDate"
+            placeholder="Select event date"
+            register={register}
+            error={errors.eventDate}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.eventDate ? "border-red-300" : "border-gray-300"
+            }`}
+          />
 
           {/* Location */}
-          <div className="mb-5">
-            <label
-              htmlFor="location"
-              className="mb-3 block text-base font-medium text-[#07074D]"
-            >
-              Location
-            </label>
+          <FormInput
+            label="Location"
+            type="text"
+            name="location"
+            placeholder="Enter event location"
+            register={register}
+            error={errors.location}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.location ? "border-red-300" : "border-gray-300"
+            }`}
+          />
+
+          {/* Require PIN */}
+          <div className="flex items-center">
             <input
-              onChange={handleInfoChange}
-              type="text"
-              name="location"
-              id="location"
-              value={info.location}
-              placeholder="Enter event location"
-              className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
+              type="checkbox"
+              {...register("requirePin")}
+              id="requirePin"
+              className="mr-2"
             />
+            <label htmlFor="requirePin">Require 4-digit PIN to view?</label>
           </div>
 
-          {/* Submit Button */}
-          <div>
+          {/* PIN input */}
+          {requirePin && (
+            <FormInput
+              label="PIN"
+              type="text"
+              name="pin"
+              placeholder="Enter 4-digit PIN"
+              register={register}
+              error={errors.pin}
+              className={`w-full px-3 py-2 border rounded-lg ${
+                errors.pin ? "border-red-300" : "border-gray-300"
+              }`}
+            />
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => navigate("/events")}
+              className="px-6 py-2 text-slate-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
-              className="hover:shadow-form w-full mt-2 rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white outline-none"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Create Event
             </button>

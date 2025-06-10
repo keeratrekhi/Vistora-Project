@@ -1,7 +1,7 @@
 // src/pages/EventGalleryPage.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getEvent } from "@/services/EventsService";
+import { getEvent, getPublicEvent } from "@/services/EventsService";
 import MediaGallery from "@/components/MediaGallery";
 import PinModal from "@/components/PinModal";
 import { Event } from "@/models/Event";
@@ -22,7 +22,7 @@ const EventGalleryPage = () => {
     const fetchEventData = async () => {
       setIsLoading(true);
       try {
-        const eventData = await getEvent(eventId);
+        const eventData = await getPublicEvent(eventId);
         if (!eventData) {
           navigate("/404");
           return;
@@ -40,7 +40,7 @@ const EventGalleryPage = () => {
         try {
           const response = await axios.get<{
             covers: Array<{ url: string; name: string; type: string; size: number }>;
-          }>(`http://localhost:3000/s3/eventscover/${eventId}`, {
+          }>(`http://localhost:3000/api/events/eventscover/${eventId}`, {
             withCredentials: true,
           });
           

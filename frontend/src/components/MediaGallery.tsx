@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Trash2, X, Download } from 'lucide-react';
+import ReactPlayer from 'react-player';
+
 
 interface MediaItem {
   url: string;
@@ -40,7 +42,7 @@ const MediaGallery = ({
         setSelectedItems([]);
         
         const response = await axios.get<MediaItem[]>(
-          `http://localhost:3000/s3/events/${eventId}`,
+          `http://localhost:3000/api/events/${eventId}`,
           {
             withCredentials: true,
             signal: abortController.signal
@@ -143,7 +145,7 @@ const MediaGallery = ({
   const handleDownload = async (fileName: string) => {
     try {
       const response = await axios.get(
-        `http://localhost:3000/s3/download/${eventId}/${fileName}`,
+        `http://localhost:3000/api/events/download/${eventId}/${fileName}`,
         {
           responseType: 'blob',
           withCredentials: true
@@ -176,7 +178,7 @@ const MediaGallery = ({
     
 //     // Get signed URLs from backend
 //     const response = await axios.post(
-//       `http://localhost:3000/s3/download-multiple-urls/${eventId}`,
+//       `http://localhost:3000/api/events/download-multiple-urls/${eventId}`,
 //       { fileNames: selectedItems },
 //       { withCredentials: true }
 //     );
@@ -208,7 +210,7 @@ const MediaGallery = ({
       setDownloading(true);
       
       const response = await axios.post(
-        `http://localhost:3000/s3/download-multiple-zip/${eventId}`,
+        `http://localhost:3000/api/events/download-multiple-zip/${eventId}`,
         { fileNames: selectedItems },
         {
           responseType: 'blob',
@@ -373,24 +375,25 @@ const MediaGallery = ({
             )}
 
             {/* Media content */}
-            {item.type === 'image' ? (
-              <img 
-                src={item.url} 
-                alt={item.name}
-                loading="lazy"
-                className="w-full h-full object-fill hover:scale-105 transition-transform duration-300 bg-black"
-              />
-            ) : (
-              <div className="relative w-full h-full">
-                <video 
-                  className="w-full h-full object-cover"
-                  controls
-                >
-                  <source src={item.url} type={`video/${item.url.split('.').pop()}`} />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            )}
+           {item.type === 'image' ? (
+  <img 
+    src={item.url} 
+    alt={item.name}
+    loading="lazy"
+    className="w-full h-full object-fill hover:scale-105 transition-transform duration-300 bg-black"
+  />
+) : (
+  <div className="relative w-full h-full bg-black">
+    <ReactPlayer
+      url={item.url}
+      controls
+      width="100%"
+      height="100%"
+      style={{ objectFit: 'cover' }}
+    />
+  </div>
+)}
+
           </div>
         ))}
       </div>

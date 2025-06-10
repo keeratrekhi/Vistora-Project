@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { FiEdit2 } from "react-icons/fi";
+import { getEventCovers } from "@/services/EventsService";
 
 interface EventCoverImageProps {
   eventId: string;
@@ -25,30 +26,28 @@ const EventCoverImage: React.FC<EventCoverImageProps> = ({
     setIsLoading(true);
     setError(null);
 
-    axios
-      .get<{
-        covers: Array<{ url: string; name: string; type: string; size: number }>;
-      }>(`http://localhost:3000/s3/eventscover/${eventId}`, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        const covers = res.data.covers;
+   
+      const fetchcover= async ()=>{
+         try{
+        const covers = await getEventCovers(eventId)
         if (Array.isArray(covers) && covers.length > 0) {
           setFetchedUrl(covers[0].url);
         } else {
           setFetchedUrl(null);
         }
-      })
-      .catch((err) => {
+      }
+      catch(err) {
         console.error("Failed to load existing cover:", err);
         setError(
           err.response?.data?.error || err.message || "Could not fetch cover"
         );
         setFetchedUrl(null);
-      })
-      .finally(() => {
+      }
+      finally{
         setIsLoading(false);
-      });
+      }
+    };
+    fetchcover();
   }, [eventId]);
 
   

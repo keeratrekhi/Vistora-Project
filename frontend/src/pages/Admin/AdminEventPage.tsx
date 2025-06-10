@@ -1,12 +1,9 @@
 
-import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
-import { FiEdit2 } from "react-icons/fi";
+import { useEffect, useState, useCallback } from "react";
 import { Event, EventMedia } from "../../models/Event";
 import { useNavigate, useParams } from "react-router-dom";
 import { ADMIN_EVENTS_ROUTE } from "../../constants/RouteContant";
 import { getEvent, updateEvent } from "@/services/EventsService";
-import { IMAGE_NOT_FOUND_PATH } from "@/constants/ImagePathConstant";
 import DateWrapper from "@/utils/DateUtil";
 import FileUploader from "@/components/FileUploader";
 import MediaGallery from "@/components/MediaGallery";
@@ -37,6 +34,7 @@ const AdminEventPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [editingField, setEditingField] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentCoverUrl, setCurrentCoverUrl] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const displayFields = ["title", "description", "eventDate", "pin", "location"];
@@ -203,7 +201,7 @@ const AdminEventPage = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-blue-500">
       {/* Sidebar */}
       <div className="w-80 bg-white shadow-lg p-6 overflow-y-auto">
         <div className="space-y-6">

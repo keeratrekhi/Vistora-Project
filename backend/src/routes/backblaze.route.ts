@@ -5,12 +5,12 @@ import UploadHandler, { bulkDeleteFiles,  deleteCoverController, deleteEvent, de
 const router = express.Router();
 
 router.post("/upload", UploadHandler as RequestHandler);
-router.get("/events/:eventId", GetMedia as RequestHandler);
+// router.get("/events/:eventId", GetMedia as RequestHandler); this route is now public
 
 //Cover image routes
 
 router.post("/uploadcover/:eventId", uploadCoverController as RequestHandler);
-router.get("/eventscover/:eventId", getCoverController as RequestHandler);
+// router.get("/eventscover/:eventId", getCoverController as RequestHandler); this route is now public
 router.delete("/mediacover/:eventId/:fileName", deleteCoverController as RequestHandler);
 
 
@@ -29,10 +29,11 @@ router.post("/media/bulk-delete/:eventId", bulkDeleteFiles as RequestHandler);
 
 
 //Download Routes
+//Public now
 
-router.get('/download/:eventId/:fileName', downloadSingleFileHandler as RequestHandler);
-router.post('/download-multiple-zip/:eventId', downloadMultipleFilesHandler as RequestHandler);
-router.post('/download-multiple-urls/:eventId', getBulkDownloadUrlsHandler as RequestHandler);
+// router.get('/download/:eventId/:fileName', downloadSingleFileHandler as RequestHandler);
+// router.post('/download-multiple-zip/:eventId', downloadMultipleFilesHandler as RequestHandler);
+// router.post('/download-multiple-urls/:eventId', getBulkDownloadUrlsHandler as RequestHandler);
 
 
 export default router;

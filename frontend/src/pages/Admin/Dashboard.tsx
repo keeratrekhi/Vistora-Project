@@ -1,11 +1,23 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import DashboardCard from "../../components/DashboardCard";
 import CircularProgress from "../../components/CircularProgress";
-import { ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  BriefcaseBusiness,
+  Copy,
+  Download,
+  ExternalLink,
+  ServerCrash,
+} from "lucide-react";
 import { useSelector } from "react-redux";
 import QRCode from "react-qr-code";
+import LoadingSpinner from "@/components/ui/loading-spinner";
+import { PORTFOLIO_INFO_ROUTE } from "@/constants/RouteContant";
+import {
+  getPortfolioURL,
+  getUserStorageInfo,
+} from "@/services/DashboardService";
+import { UserStorageDto } from "@/models/User";
+import toast from "react-hot-toast";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -22,22 +34,12 @@ const Dashboard = () => {
   );
 
   const qrContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Add portfolio state with proper type
-  const [portfolio, setPortfolio] = useState<{
-    id: string;
-    name: string;
-    portfolioQrCode: string;
-  } | null>(null);
-  
-  const [portfolioLoading, setPortfolioLoading] = useState(true);
-  const [storageData, setStorageData] = useState<{
-    used: string;
-    total: string;
-    remaining: string;
-  } | null>(null);
-  
-  const [storageLoading, setStorageLoading] = useState(true);
+
+  const [portfolioURL, setPortfolioURL] = useState<string | null>(null);
+  const [storageData, setStorageData] = useState<UserStorageDto | null>(null);
+
+  const [isPortfolioURLFetching, setIsPortfolioURLFetching] = useState(false);
+  const [storageLoading, setStorageLoading] = useState(false);
 
   const formatBytes = (bytes: string): string => {
     const num = Number(bytes);
@@ -55,58 +57,59 @@ const Dashboard = () => {
     return `${size.toFixed(2)} ${units[unitIndex]}`;
   };
 
+  // Fetch portfolio data
   useEffect(() => {
     const fetchData = async () => {
       if (!currentUser?.id) return;
 
       try {
-        setStorageLoading(true);
-        setPortfolioLoading(true);
-        
-        // Fetch portfolio data
-        const portRes = await fetch(
-          `http://localhost:3000/api/portfolio/${currentUser.id}`,
-          { method: "GET", credentials: "include" }
-        );
-        
-        if (portRes.ok) {
-          const portData = await portRes.json();
-          setPortfolio(portData);
-        } else {
-          const errorData = await portRes.json();
-          console.error("Portfolio fetch error:", errorData.message);
-          setPortfolio(null);
-        }
+        setIsPortfolioURLFetching(true);
 
-        // Fetch storage data
-        const storageRes = await fetch(
-          `http://localhost:3000/api/user/${currentUser.id}`,
-          { method: "GET", credentials: "include" }
-        );
-        
-        if (storageRes.ok) {
-          const storageData = await storageRes.json();
-          setStorageData(storageData);
-        } else {
-          const errorData = await storageRes.json();
-          console.error("Storage fetch error:", errorData.error);
-        }
+        const portfolioUrl = await getPortfolioURL(currentUser.id);
+        setPortfolioURL(portfolioUrl as string);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        toast.error("Error fetching portfolio URL. Please try again later.");
       } finally {
-        setStorageLoading(false);
-        setPortfolioLoading(false);
+        setIsPortfolioURLFetching(false);
       }
     };
 
     fetchData();
   }, [currentUser]);
 
-  const getPercentage = () => {
-    if (!storageData || Number(storageData.total) === 0) return 0;
+  // Fetch storage data
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!currentUser?.id) return;
 
-    const used = Number(storageData.used);
-    const total = Number(storageData.total);
+      try {
+        setStorageLoading(true);
+
+        const userStorage = await getUserStorageInfo(currentUser.id);
+        setStorageData(userStorage);
+      } catch (error) {
+        toast.error("Error fetching storage data. Please try again later.");
+      } finally {
+        setStorageLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [currentUser]);
+
+  const getAvailableStorage = () => {
+    if (!storageData || Number(storageData.storageLimit) === 0) return "0 B";
+    const used = Number(storageData.storageUsed);
+    const total = Number(storageData.storageLimit);
+    const available = total - used;
+    return formatBytes(available.toString());
+  };
+
+  const getPercentage = () => {
+    if (!storageData || Number(storageData.storageLimit) === 0) return 0;
+
+    const used = Number(storageData.storageUsed);
+    const total = Number(storageData.storageLimit);
     return Math.round((used / total) * 100);
   };
 
@@ -116,151 +119,203 @@ const Dashboard = () => {
     }
   }, [username, currentUser, navigate]);
 
-  // Handle QR code download
+  //QR code download
   const handleDownloadQRCode = () => {
     if (!qrContainerRef.current) return;
 
     const svgElement = qrContainerRef.current.querySelector("svg");
     if (!svgElement) return;
 
+    // Serialize SVG to string
     const serializer = new XMLSerializer();
     const svgString = serializer.serializeToString(svgElement);
 
-    const blob = new Blob([svgString], {
+    // Create an image from SVG
+    const img = new window.Image();
+    const svgBlob = new Blob([svgString], {
       type: "image/svg+xml;charset=utf-8",
     });
+    const url = URL.createObjectURL(svgBlob);
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "portfolio-qr.svg";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    img.onload = function () {
+      // Create a canvas and draw the image
+      const canvas = document.createElement("canvas");
+      canvas.width = svgElement.width.baseVal.value || 256;
+      canvas.height = svgElement.height.baseVal.value || 256;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+
+        // Download as PNG
+        const pngUrl = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.href = pngUrl;
+        link.download = "portfolio-qr.png";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      URL.revokeObjectURL(url);
+    };
+
+    img.onerror = function () {
+      URL.revokeObjectURL(url);
+      alert("Failed to convert QR code to image.");
+    };
+
+    img.src = url;
+  };
+
+  const handleCopyUrl = () => {
+    navigator.clipboard.writeText(portfolioURL || "");
+  };
+
+  const handleOpenPortfolio = () => {
+    if (portfolioURL) {
+      window.open(portfolioURL, "_blank");
+    }
+  };
+
+  const handleCreatePortfolio = () => {
+    navigate(PORTFOLIO_INFO_ROUTE);
   };
 
   return (
-    <div className="container mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 m-5">
-        {/* Storage Status Card */}
-        <DashboardCard
-          title="STORAGE STATUS"
-          subTitle={
-            <div className="flex justify-start items-center gap-2 mt-2 text-gray-600">
-              <div>Total Storage :</div>
-              {storageData ? formatBytes(storageData.total) : "0 B"}
-            </div>
-          }
-          cardBody={
-            <div className="flex-col items-center justify-center mt-4">
-              {storageLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  Loading storage data...
+    <div className="space-y-6">
+      {/* Welcome Banner */}
+      <div className="bg-white rounded-xl shadow-md p-5">
+        <h1 className="text-2xl font-semibold text-slate-800 mb-2 ">
+          Welcome back, {currentUser.username}
+        </h1>
+        <p className="text-slate-600 ">
+          For assistance contact us at:
+          <br />
+          Phone: +91 9723394996
+          <br />
+          Email: Vistora.help@gmail.com
+        </p>
+      </div>
+
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Storage Card */}
+        {storageLoading ? (
+          <LoadingSpinner message="Fetching Storage Usage" />
+        ) : storageData?.storageLimit && storageData?.storageUsed ? (
+          <div className="bg-white rounded-xl shadow-md p-5">
+            <h2 className="text-xl font-semibold text-slate-800 mb-6 ">
+              Storage Info
+            </h2>
+
+            <div className="flex flex-col items-center space-y-4">
+              <CircularProgress percentage={getPercentage()} />
+
+              <div className="text-center space-y-2">
+                <div className="flex justify-between items-center w-full max-w-xs">
+                  <span className="text-slate-600">Used Storage:</span>
+                  <span className="font-semibold text-slate-800">
+                    {formatBytes(storageData?.storageUsed)}
+                  </span>
                 </div>
-              ) : storageData ? (
-                <>
-                  <div className="flex justify-center items-center w-full text-l my-1 gap-2 text-gray-700">
-                    <span className="mx-3 font-bold w-10 h-3 bg-green-500"></span>{" "}
-                    <span className="w-35">Max Storage</span>
-                  </div>
-                  <div className="flex justify-center items-center w-full text-l mb-5 gap-2 text-gray-700">
-                    <span className="mx-3 font-bold w-10 h-3 bg-gray-300"></span>
-                    <span className="w-35">Storage Used</span>
-                  </div>
-                  <div className="flex justify-center items-center w-full text-l gap-2">
-                    <CircularProgress percentage={getPercentage()} />
-                  </div>
-                  <div className="flex justify-center items-center w-full text-sm gap-1 mt-2 text-gray-700">
-                    Used Storage:{" "}
-                    <span className="font-medium">
-                      {formatBytes(storageData.used)}
-                    </span>
-                  </div>
-                  <div className="flex justify-center items-center w-full text-sm gap-1 text-gray-700">
-                    Free Storage:{" "}
-                    <span className="font-medium">
-                      {formatBytes(storageData.remaining)}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  Storage data not available
+                <div className="flex justify-between items-center w-full max-w-xs">
+                  <span className="text-slate-600 ">Available Storage:</span>
+                  <span className="font-semibold text-slate-800">
+                    {getAvailableStorage()}
+                  </span>
                 </div>
-              )}
+                <div className="flex justify-between items-center w-full max-w-xs border-t pt-2">
+                  <span className="text-slate-600">Total Storage:</span>
+                  <span className="font-semibold text-slate-800">
+                    {formatBytes(storageData?.storageLimit)}
+                  </span>
+                </div>
+              </div>
             </div>
-          }
-        />
+          </div>
+        ) : (
+          <div className="h-50 flex flex-col items-center justify-center py-8 bg-gray-100 rounded-lg border border-gray-200">
+            <div className="text-lg flex gap-2 font-semibold text-slate-800 mb-4">
+              <ServerCrash />
+              Unable to fetch storage data.
+            </div>
+          </div>
+        )}
 
         {/* QR Code Card */}
-        <DashboardCard
-          cardBody={
-            <div className="flex flex-col h-full justify-between">
-              {portfolio?.portfolioQrCode ? (
-                <div>
-                  <div
-                    ref={qrContainerRef}
-                    className="h-50 flex justify-center py-4 bg-gray-100 rounded-lg border border-gray-200"
-                  >
-                    <QRCode
-                      size={128}
-                      style={{
-                        height: "auto",
-                        maxWidth: "100%",
-                        width: "100%",
-                      }}
-                      value={portfolio.portfolioQrCode}
-                      viewBox={`0 0 256 256`}
-                    />
-                  </div>
-  
-                  <div className="flex justify-center items-center gap-2 mt-3">
-                    <Button
-                      onClick={handleDownloadQRCode}
-                      variant="default"
-                      className="flex items-center gap-1 border-yellow-400 bg-yellow-400 text-gray-600 hover:bg-gray-700 hover:text-white hover:border-gray-700"
-                    >
-                      <span>Download QR</span>
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-50 flex justify-center py-4 bg-gray-100 rounded-lg border border-gray-200">
-                  <div className="text-black">
-                    {portfolioLoading 
-                      ? "Loading portfolio..." 
-                      : "Create a Portfolio to get a QR Code"}
-                  </div>
-                </div>
-              )}
+        {isPortfolioURLFetching ? (
+          <LoadingSpinner message="Loading QR Code" />
+        ) : portfolioURL ? (
+          <div className="bg-white rounded-xl shadow-md p-5">
+            <h2 className="text-xl font-semibold text-slate-800 mb-6">
+              Portfolio QR Code
+            </h2>
 
-
-               
-              <div className="mt-5 w-full">
-                <Button
-                  variant="outline"
-                  className="w-full flex items-center justify-between border-gray-600 text-gray-600 bg-white hover:bg-gray-700 hover:text-white rounded-md text-sm"
-                  onClick={() => {
-                    if (portfolio?.portfolioQrCode) {
-                      window.open(portfolio.portfolioQrCode, '_blank');
-                    }
+            <div className="flex flex-col items-center space-y-4">
+              {/* QR Code Placeholder */}
+              <div
+                ref={qrContainerRef}
+                className="w-32 h-32 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center"
+              >
+                <QRCode
+                  size={128}
+                  style={{
+                    height: "auto",
+                    maxWidth: "100%",
+                    width: "100%",
                   }}
-                >
-                  
-                  <span className="w-65 overflow-hidden text-ellipsis">
-                    {/* Portfolio name in the span element */}
-                    {portfolioLoading 
-                      ? "Loading..." 
-                      : `https://site.Vistora.cloud/${portfolio?.name}` || "Your Portfolio"}
-                  </span>
-                  <ExternalLink size={15} />
-                </Button>
+                  value={portfolioURL}
+                  viewBox={`0 0 256 256`}
+                />
               </div>
-  
+
+              {/* Download Button */}
+              <button
+                onClick={handleDownloadQRCode}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download QR</span>
+              </button>
+
+              {/* Portfolio URL */}
+              <div className="w-full">
+                <p className="text-sm text-slate-600 mb-2 ">Portfolio URL:</p>
+                <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-slate-800 flex-1  font-mono">
+                    {portfolioURL}
+                  </span>
+                  <button
+                    onClick={handleOpenPortfolio}
+                    className="p-1 hover:text-blue-600 transition-colors"
+                    title="Open in new tab"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleCopyUrl}
+                    className="p-1 hover:text-blue-600 transition-colors"
+                    title="Copy to clipboard"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-          }
-        />
+          </div>
+        ) : (
+          <div className="h-50 flex flex-col items-center justify-center py-8 bg-gray-100 rounded-lg border border-gray-200">
+            <div className="text-lg flex gap-2 font-semibold text-slate-800 mb-4">
+              <BriefcaseBusiness />
+              Create your own portfolio website.
+            </div>
+            <button
+              onClick={handleCreatePortfolio}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold shadow-sm"
+            >
+              Create Portfolio
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

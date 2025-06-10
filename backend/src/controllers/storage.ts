@@ -75,13 +75,9 @@ export async function storagedashboardupdate(
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Calculate remaining storage
-    const remaining = user.totalStorageAllowed - user.storageUsed;
-
     res.status(200).json({
-      used: user.storageUsed.toString(),
-      total: user.totalStorageAllowed.toString(),
-      remaining: remaining.toString(),
+      storageUsed: user.storageUsed.toString(),
+      storageLimit: user.totalStorageAllowed.toString()
     });
   } catch (error) {
     console.error("Error fetching storage data:", error);

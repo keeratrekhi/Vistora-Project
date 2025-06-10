@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthenticateRoutes, NonAuthenticateRoutes } from "./AppRoutes";
-import Layout from "./components/Layout";
+import Layout from "./components/layout/Layout";
 import NotFound from "./pages/NotFound";
 import PrivateRoutes from "./pages/Auth/PrivateRoutes";
 import { Toaster } from "react-hot-toast";

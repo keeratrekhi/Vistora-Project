@@ -29,7 +29,9 @@ export const APIService = {
     },
 
     delete: async <T>(url: string): Promise<APIResponse<T>> => {
-        const response = await axiosInstance.delete<T>(url);
+        const response = await axiosInstance.delete<T>(url,{
+            withCredentials: true
+        });
         return { data: response.data, statusCode: response.status };
     },
 };

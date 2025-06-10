@@ -22,7 +22,7 @@ import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Admin/Dashboard";
 import AdminEventsPage from "./pages/Admin/AdminEventsPage";
 // import EventForm from "./components/EventForm";
-import PortfolioInfo from "./pages/PortfolioInfo";
+import PortfolioInfo from "./pages/Admin/PortfolioInfo";
 import Portfolio from "./pages/Portfolio";
 import EventShare from "./pages/EventShare";
 import NotFound from "./pages/NotFound";
@@ -56,7 +56,16 @@ export const NonAuthenticateRoutes: RouteObject[] = [
     element : <NotFound />,
     withLayout : false
   },
+
+  {
+  path: PUBLISHED_ROUTE,
+  element: <EventGalleryPage />,
+  withLayout: false
+},
+
 ];
+
+
 
 export const AuthenticateRoutes: RouteObject[] = [
   {
@@ -94,11 +103,7 @@ export const AuthenticateRoutes: RouteObject[] = [
     element : <EventShare />,
     withLayout : false
   },
-{
-  path: PUBLISHED_ROUTE,
-  element: <EventGalleryPage />,
-  withLayout: false
-},
+
   {
     path : CHUNK_UPLOAD_ROUTE,
     element : <ChunkUploadPage />,

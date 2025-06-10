@@ -13,9 +13,9 @@ interface StorageStatus {
 }
 
 interface UploadProgress {
-  total: number;       // the total size in bytes (client‐calculated)
-  loaded: number;      // how many bytes have uploaded so far
-  percentage: number;  // (loaded / total) * 100, rounded
+  total: number;
+  loaded: number;
+  percentage: number;
 }
 
 const FileUploader: React.FC<FileUploadProps> = ({
@@ -25,26 +25,27 @@ const FileUploader: React.FC<FileUploadProps> = ({
 }) => {
   const [storage, setStorage] = useState<StorageStatus>({
     used: 0n,
-    total: BigInt(10737418240), // default 10 GB
+    total: BigInt(10 * 1024 ** 3), // 10 GB default
   });
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>("");
-  const [uploadProgress, setUploadProgress] =
-    useState<UploadProgress | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
+    null
+  );
   const [isUploading, setIsUploading] = useState(false);
 
-  // We’ll keep the “client‐computed total size” in a ref so it’s stable across re‐renders:
   const totalSizeRef = useRef<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const formatBytes = (bytes: bigint): string => {
+  const formatBytes = (bytes: bigint) => {
     const units = ["B", "KB", "MB", "GB", "TB"];
     let size = Number(bytes);
-    let unitIndex = 0;
-    while (size >= 1024 && unitIndex < units.length - 1) {
+    let unit = 0;
+    while (size >= 1024 && unit < units.length - 1) {
       size /= 1024;
-      unitIndex++;
+      unit++;
     }
-    return `${size.toFixed(2)} ${units[unitIndex]}`;
+    return `${size.toFixed(2)} ${units[unit]}`;
   };
 
   // Fetch “used” + “total” storage for this event
@@ -52,7 +53,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
     const fetchStorage = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3000/api/user/storage?eventId=${eventId}`,
+          `http://localhost:3000/api/storage/user/storage?eventId=${eventId}`,
           { withCredentials: true }
         );
         if (
@@ -80,14 +81,60 @@ const FileUploader: React.FC<FileUploadProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files) {
-      setSelectedFiles(files);
-      setUploadProgress(null);
-      setUploadStatus("");
-      // Compute total size (in bytes) of all selected files:
-      const total = Array.from(files).reduce((sum, f) => sum + f.size, 0);
-      totalSizeRef.current = total;
+    if (!files) return;
+    setSelectedFiles(files);
+    // reset
+    setUploadProgress(null);
+    setUploadStatus("");
+
+    // compute total size client‐side
+    const total = Array.from(files).reduce((sum, f) => sum + f.size, 0);
+    totalSizeRef.current = total;
+  };
+
+  const getEstimatedSpeedBps = () => {
+    // use navigator.connection.downlink (in Mb/s)
+    const nav = (navigator as any).connection;
+    if (nav && nav.downlink) {
+      // downlink is in Mb/s
+      return nav.downlink * 1_000_000 / 8; // convert to bytes per second
     }
+    // fallback to, say, 1 MB/s
+    return 1_000_000;
+  };
+
+const startFakeProgress = () => {
+  const total = totalSizeRef.current;
+  const speed = getEstimatedSpeedBps();
+  let loaded = 0;
+
+  setUploadProgress({
+    total,
+    loaded,
+    percentage: 0,
+  });
+
+  const maxFakeLoaded = Math.floor(total * 0.99); // cap at 99%
+
+  timerRef.current = setInterval(() => {
+    loaded = Math.min(loaded + speed, maxFakeLoaded);
+    const pct = Math.round((loaded / total) * 100);
+
+    setUploadProgress({
+      total,
+      loaded,
+      percentage: pct,
+    });
+
+    if (loaded >= maxFakeLoaded && timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+  }, 1000);
+};
+
+  const stopFakeProgress = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
   };
 
   const handleUpload = async () => {
@@ -100,59 +147,37 @@ const FileUploader: React.FC<FileUploadProps> = ({
       return;
     }
 
+    setIsUploading(true);
+    setUploadStatus("Uploading…");
+    startFakeProgress();
+
     const formData = new FormData();
-    Array.from(selectedFiles).forEach((file) => {
-      formData.append("file", file);
-    });
+    Array.from(selectedFiles).forEach((f) => formData.append("file", f));
     formData.append("eventId", eventId);
 
     try {
-      setIsUploading(true);
-      setUploadStatus("Uploading…");
+      const resp = await axios.post(
+        "http://localhost:3000/s3/upload",
+        formData,
+        { withCredentials: true }
+      );
 
-      // Initialize our “client‐side total” (just in case):
-      const totalSize = totalSizeRef.current;
-      setUploadProgress({
-        total: totalSize,
-        loaded: 0,
-        percentage: 0,
+      stopFakeProgress();
+      // ensure progress goes to 100%
+      setUploadProgress((p) =>
+        p ? { ...p, loaded: p.total, percentage: 100 } : p
+      );
+      setStorage({
+        used: BigInt(resp.data.storageUsed),
+        total: BigInt(resp.data.totalStorage),
       });
-
-      await axios.post("http://localhost:3000/s3/upload", formData, {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        onUploadProgress: (progressEvent) => {
-          // progressEvent.loaded is how many bytes have been sent so far
-          // We’ll trust totalSizeRef.current instead of progressEvent.total
-          const loaded = progressEvent.loaded;
-          const percentage = totalSize
-            ? Math.round((loaded / totalSize) * 100)
-            : 0;
-          setUploadProgress({
-            total: totalSize,
-            loaded,
-            percentage,
-          });
-        },
-      }).then((response) => {
-        // Once upload finishes, update “used” + “total” from server response
-        // (Assume response.data.storageUsed and response.data.totalStorage are strings)
-        setStorage({
-          used: BigInt(response.data.storageUsed),
-          total: BigInt(response.data.totalStorage),
-        });
-        setUploadStatus("✅ Files uploaded successfully!");
-        setSelectedFiles(null);
-        setUploadProgress(null);
-        if (onUploadSuccess) {
-          onUploadSuccess();
-        }
-      });
-    } catch (error) {
-      console.error(error);
+      setUploadStatus("✅ Files uploaded successfully!");
+      setSelectedFiles(null);
+      if (onUploadSuccess) onUploadSuccess();
+    } catch (err) {
+      stopFakeProgress();
       setUploadStatus("❌ Upload failed");
+      console.error(err);
     } finally {
       setIsUploading(false);
     }
@@ -160,11 +185,12 @@ const FileUploader: React.FC<FileUploadProps> = ({
 
   return (
     <div className="p-4 rounded-md shadow-md bg-white max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-2 text-purple-800">Upload Files</h2>
+      <h2 className="text-xl font-bold mb-2 text-purple-800">
+        Upload Files
+      </h2>
 
       {/* Storage Status */}
       <div className="mb-4">
-        <h3 className="font-semibold text-purple-800">Storage Usage</h3>
         <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
           <div
             className="bg-blue-500 h-2.5"
@@ -185,17 +211,15 @@ const FileUploader: React.FC<FileUploadProps> = ({
         </p>
       </div>
 
-      {/* File Input */}
       <input
         type="file"
-        accept=".jpg,.jpeg,.png,.mp4,.mov,.txt"
         multiple
         onChange={handleFileChange}
         disabled={isUploading}
         className="mb-2 text-purple-900 w-full"
       />
 
-      {/* Real‐time Upload Progress Bar */}
+      {/* Fake Progress Bar */}
       {isUploading && uploadProgress && (
         <div className="mb-4">
           <div className="flex justify-between text-sm text-gray-600 mb-1">
@@ -215,7 +239,6 @@ const FileUploader: React.FC<FileUploadProps> = ({
         </div>
       )}
 
-      {/* Upload Button */}
       <button
         onClick={handleUpload}
         disabled={!selectedFiles || isUploading}
@@ -224,7 +247,6 @@ const FileUploader: React.FC<FileUploadProps> = ({
         {isUploading ? "Uploading…" : "Upload"}
       </button>
 
-      {/* Status Message */}
       {uploadStatus && !isUploading && (
         <p
           className={`mt-2 text-sm ${

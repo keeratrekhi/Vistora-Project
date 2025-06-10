@@ -39,6 +39,20 @@ export const getEvent = async (id: string): Promise<Event> => {
   };
 };
 
+// src/services/EventsService.ts
+export const getPublicEvent = async (eventId: string): Promise<Event | null> => {
+
+    const response = await APIService.get<Event>(`${env.VITE_PUBLIC_EVENTS_URL}/${eventId}`);
+   return {
+    ...response.data,
+    eventDate: new DateWrapper(response.data.eventDate as string), // Convert to DateWrapper
+    publishedDateTime: new DateWrapper(
+      response.data.publishedDateTime as string
+    ), // Convert to DateWrapper
+  
+};
+}
+
 
 
 export const updateEvent = async (
@@ -56,3 +70,22 @@ export const createEvent = async (event: CreateEventModel,id: string): Promise<v
   await APIService.post<string, CreateEventModel>(env.VITE_EVENTS_URL,event);
   return;
 };
+
+
+
+export interface CoverFile {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
+export async function getEventCovers(eventId: string): Promise<CoverFile[]> {
+  const response = await APIService.get<{ covers: CoverFile[] }>(
+    `${env.VITE_EVENTS_API_URL}/eventscover/${eventId}`,
+    {
+      withCredentials: true,
+    }
+  );
+  return response.data.covers;
+}

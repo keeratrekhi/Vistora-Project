@@ -11,6 +11,7 @@ import s3Routes from "./routes/backblaze.route"
 import { uploadToB2 } from "./controllers/backblaze";
 import path from "path";
 import storageroutes from "./routes/storage.routes"
+import publicRouter from "./routes/public.route";
 
 // async function main() {
 //   try {
@@ -73,13 +74,14 @@ app.use(express.json());
 
 app.use("/api", testroutes);
 app.use("/api/auth", authRouter);
+app.use("/api/events", publicRouter);
 
 app.use(validateUserMiddleware);
 
-app.use("/api",storageroutes);
 app.use("/api", testroutes);
+app.use("/api/storage",storageroutes);
 app.use("/api/portfolio", portfolioroutes);
-app.use("/api/events", eventRouter);
+app.use("/api/adminevents", eventRouter);
 app.use("/s3", s3Routes);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
