@@ -7,9 +7,6 @@ import { getUserIdFromCookie } from "../utils/helper";
 dotenv.config();
 const prisma = new PrismaClient();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Create or Update Portfolio
-// ─────────────────────────────────────────────────────────────────────────────
 export const CreatePortfolio: RequestHandler = async (
   req: Request,
   res: Response,
@@ -174,5 +171,25 @@ export const Portfolio: RequestHandler = async (
     return;
   } catch (error) {
     next(error);
+  }
+};
+
+
+export const GetPortEvents: RequestHandler = async (req, res) => {
+  try {
+    const {userId} = req.params;
+    if(!userId){
+      res.status(403).json({ message: "You are not authorized to get this event" });
+      return;
+    }
+    const events = await prisma.event.findMany({
+      where: {
+        userId: userId,
+      },
+    });
+    res.status(200).json(events);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

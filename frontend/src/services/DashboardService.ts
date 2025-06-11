@@ -4,6 +4,21 @@ import { UserStorageDto } from "@/models/User";
 
 const env = import.meta.env;
 
+
+export interface EventDto {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  link: string;
+  date: string;
+}
+
+export interface CoverDto {
+  coverImage: string | null;
+}
+
+
 export const getPortfolioURL = async (id : String): Promise<String> => {
   const response = await APIService.get<PortfolioDto>(`${env.VITE_PORTFOLIO_URL}/${id}`);
   return response.data.portfolioQrCode;
@@ -18,6 +33,38 @@ export const getPortfolioSite = async (name : String): Promise<PortfolioDto> => 
     const response = await APIService.get<PortfolioDto>(`${env.VITE_PORTFOLIO_URL}/getport/${name}`);
     return response.data;
 }
+
+export const getPortfolioevents = async (
+  userId: string
+): Promise<EventDto[]> => {
+  const response = await APIService.get<EventDto[]>(
+    `${env.VITE_PORTFOLIO_URL}/events/${userId}`
+  );
+  return response.data;
+};
+
+
+
+export interface CoverFile {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
+export interface CoverDto {
+  covers: CoverFile[];
+}
+
+export const getPorteventCover = async (
+  eventId: string
+): Promise<CoverDto> => {
+  const response = await APIService.get<CoverDto>(
+    `${env.VITE_PORTFOLIO_URL}/eventcover/${eventId}`
+  );
+  return response.data;
+};
+
 
 export const createPortfolio = async (portfolioInfo: PortfolioInfoModel): Promise<void> => {
     await APIService.post<PortfolioDto, PortfolioInfoModel>(env.VITE_PORTFOLIO_URL, portfolioInfo);
