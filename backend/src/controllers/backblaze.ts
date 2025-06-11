@@ -72,7 +72,7 @@ export async function uploadToB2(
 
 try{
 
-  const ext = path.extname(filePath).toLowerCase();
+  const ext = originalFilename ? path.extname(originalFilename).toLowerCase() : path.extname(filePath).toLowerCase();
   if (!allowedExt.includes(ext)) throw new Error(`Invalid file type: ${ext}`);
 
   const stats = await stat(filePath);
@@ -80,7 +80,7 @@ try{
     throw new Error(`File exceeds ${MAX_FILE_SIZE / 1024 / 1024 / 1024}GB limit`);
   }
 
-  const fileName = path.basename(filePath);
+  const fileName =originalFilename|| path.basename(filePath);
   const remoteFileName = `events/${eventId}/${fileName}`;
 
   await b2.authorize();

@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { Event, EventMedia } from "../../models/Event";
 import { useNavigate, useParams } from "react-router-dom";
@@ -7,9 +6,12 @@ import { getEvent, updateEvent } from "@/services/EventsService";
 import DateWrapper from "@/utils/DateUtil";
 import FileUploader from "@/components/FileUploader";
 import MediaGallery from "@/components/MediaGallery";
-import Button from "@/components/Button";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import QRCode from "react-qr-code";
 import EventCoverImage from "@/components/EventImageCover";
+import { Calendar, MapPin, Users, Edit3, Eye, Copy, Sparkles, QrCode, Upload, Image } from "lucide-react";
 
 interface UpdateEventPayload {
   id: string;
@@ -20,10 +22,10 @@ interface UpdateEventPayload {
   isPublished?: boolean;
   publishedUrl?: string;
   coverImageUrl?: string;
-  
 }
 
 const AdminEventPage = () => {
+  
   const navigate = useNavigate();
   const { id: eventId } = useParams<{ id: string }>();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -39,7 +41,6 @@ const AdminEventPage = () => {
 
   const displayFields = ["title", "description", "eventDate", "pin", "location"];
 
-  
   const fetchEventData = useCallback(async () => {
     if (!eventId) return;
     setIsLoading(true);
@@ -63,7 +64,6 @@ const AdminEventPage = () => {
   useEffect(() => {
     fetchEventData();
   }, [eventId, fetchEventData, refreshKey]);
-
 
   const handleOpenEditModal = () => {
     setEditForm({ ...event } as Event);
@@ -99,7 +99,6 @@ const AdminEventPage = () => {
   const handleSaveEdit = async () => {
     if (!editForm || !isValidForm()) return;
 
-    // Convert DateWrapper → "YYYY-MM-DD"
     const formattedDate = (editForm.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
 
     const payloadToSend: UpdateEventPayload = {
@@ -120,12 +119,10 @@ const AdminEventPage = () => {
     }
   };
 
- 
   const updateEventCoverImage = useCallback(
     async (newCoverUrl: string | null) => {
       if (!event || !eventId) return;
 
-      // Preserve other required fields (e.g. eventDate) so updateEvent doesn't drop them
       const eventDateString =
         typeof event.eventDate === "string"
           ? event.eventDate
@@ -133,13 +130,12 @@ const AdminEventPage = () => {
 
       const payload: UpdateEventPayload = {
         id: eventId,
-        coverImageUrl: newCoverUrl || "", // if null, send empty string
+        coverImageUrl: newCoverUrl || "",
         eventDate: eventDateString,
       };
 
       try {
         await updateEvent(payload);
-        // Re‐fetch so that event.coverImageUrl is up to date
         await fetchEventData();
       } catch (err) {
         console.error("Failed to save new coverImageUrl to database:", err);
@@ -147,7 +143,6 @@ const AdminEventPage = () => {
     },
     [event, eventId, fetchEventData]
   );
-
 
   const handlePublish = async () => {
     if (!event || !eventId) return;
@@ -175,157 +170,265 @@ const AdminEventPage = () => {
     }
   };
 
- 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl">
+          <div className="flex items-center space-x-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+            <div>
+              <p className="text-lg font-semibold text-gray-800">Loading event...</p>
+              <p className="text-sm text-gray-600">Please wait a moment</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h2>
-          <button
-            onClick={() => navigate(ADMIN_EVENTS_ROUTE)}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-          >
-            Return to Events
-          </button>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+        <Card className="w-full max-w-md mx-4 shadow-xl border-0">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <Calendar className="w-8 h-8 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h2>
+            <p className="text-gray-600 mb-6">The event you're looking for doesn't exist or has been removed.</p>
+            <Button
+              onClick={() => navigate(ADMIN_EVENTS_ROUTE)}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+            >
+              Return to Events
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-blue-500">
-      {/* Sidebar */}
-      <div className="w-80 bg-white shadow-lg p-6 overflow-y-auto">
-        <div className="space-y-6">
-          {/* Cover Image Section */}
-          <div className="space-y-2">
-            <label className="text-sm font-bold">Cover Image</label>
-            <EventCoverImage
-              eventId={eventId}
-              currentCoverUrl={event.coverImageUrl || null}
-              onCoverImageChanged={updateEventCoverImage}
-            />
-          </div>
-
-          {/* Event Details */}
-          {displayFields.map((field) => (
-            <div key={field} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm text-black capitalize font-bold">
-                  {field}
-                </label>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <div className="w-80 bg-white/80 backdrop-blur-sm shadow-xl border-r border-blue-200 overflow-y-auto">
+          <div className="p-6 space-y-6">
+            {/* Header */}
+            <div className="text-center relative">
+              <div className="absolute -top-2 -right-2 text-blue-400 animate-pulse">
+                <Sparkles className="w-6 h-6" />
               </div>
-              <p className="text-gray-900">
-                {field === "eventDate"
-                  ? (event[field] as DateWrapper).getDisplayFormat("DD-MM-YYYY")
-                  : event[field]}
-              </p>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+                Event Dashboard
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">Manage with love</p>
             </div>
-          ))}
 
-          {/* Edit Info Button */}
-          <button
-            className="mt-4 w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-            onClick={handleOpenEditModal}
-          >
-            Edit Info
-          </button>
+            {/* Cover Image Section */}
+            <Card className="border-blue-200 hover:shadow-lg transition-all duration-300 group">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Image className="w-4 h-4 text-blue-600" />
+                  Cover Image
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative rounded-lg overflow-hidden bg-gradient-to-br from-blue-100 to-blue-200 group-hover:scale-[1.02] transition-transform duration-300">
+                  <EventCoverImage
+                    eventId={eventId}
+                    currentCoverUrl={event.coverImageUrl || null}
+                    onCoverImageChanged={updateEventCoverImage}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-          {/* QR Code */}
-          {event.publishedUrl ? (
-            <QRCode
-              size={128}
-              style={{
-                height: "auto",
-                maxWidth: "100%",
-                width: "100%",
-              }}
-              value={event.publishedUrl}
-              viewBox={`0 0 256 256`}
-            />
-          ) : (
-            <p className="text-sm text-gray-600 mt-2">
-              Publish the event to see a QR code.
-            </p>
-          )}
-        </div>
-      </div>
+            {/* Event Details */}
+            <Card className="border-blue-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  Event Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {displayFields.map((field, index) => (
+                  <div key={field} className="animate-fadeIn" style={{ animationDelay: `${index * 100}ms` }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      {field === 'location' && <MapPin className="w-3 h-3 text-blue-500" />}
+                      {field === 'eventDate' && <Calendar className="w-3 h-3 text-blue-500" />}
+                      {field === 'pin' && <QrCode className="w-3 h-3 text-blue-500" />}
+                      <label className="text-xs font-medium text-gray-700 capitalize">
+                        {field === 'eventDate' ? 'Date' : field}
+                      </label>
+                    </div>
+                    <div className="bg-blue-50/70 p-3 rounded-lg border border-blue-100 hover:bg-blue-100/70 transition-colors duration-200">
+                      <p className="text-sm text-gray-900 font-medium">
+                        {field === "eventDate"
+                          ? (event[field] as DateWrapper).getDisplayFormat("DD-MM-YYYY")
+                          : event[field]}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
 
-      {/* Main Content - Media Management */}
-      <div className="flex-1 overflow-auto flex flex-col p-6 bg-white">
-        <div className="flex justify-between">
-          <h1 className="text-xl font-semibold text-slate-800 mb-4">
-            Media Management
-          </h1>
-
-          {event.isPublished ? (
-            <div className="flex gap-2">
-              <Button
-                className="bg-green-600 hover:bg-green-700 text-white"
-                onClick={() => window.open(event.publishedUrl, "_blank")}
-              >
-                View Published Site
-              </Button>
-              <Button
-                className="bg-gray-600 hover:bg-gray-700 text-white"
-                onClick={() => {
-                  navigator.clipboard.writeText(event.publishedUrl || "");
-                  alert("Link copied to clipboard!");
-                }}
-              >
-                Copy Link
-              </Button>
-            </div>
-          ) : (
+            {/* Edit Button */}
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={handlePublish}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
+              onClick={handleOpenEditModal}
             >
-              Publish Event
+              <Edit3 className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+              Edit Event Info
             </Button>
-          )}
+
+            {/* QR Code Section */}
+            <Card className="border-blue-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <QrCode className="w-4 h-4 text-blue-600" />
+                  QR Code
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {event.publishedUrl ? (
+                  <div className="bg-white p-4 rounded-lg border-2 border-dashed border-blue-200 text-center hover:border-blue-300 transition-colors duration-200">
+                    <QRCode
+                      size={128}
+                      style={{
+                        height: "auto",
+                        maxWidth: "100%",
+                        width: "100%",
+                      }}
+                      value={event.publishedUrl}
+                      viewBox={`0 0 256 256`}
+                    />
+                    <p className="text-xs text-gray-600 mt-2">Scan to view event</p>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <QrCode className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Publish to generate QR code</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Centered FileUploader */}
-        {eventId && (
-          <div className="flex justify-center mb-6">
-            <FileUploader
-              eventId={eventId}
-              onUploadSuccess={() => setRefreshKey((prev) => prev + 1)}
-              refreshKey={refreshKey}
-            />
-          </div>
-        )}
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <div className="bg-white/70 backdrop-blur-sm border-b border-blue-200 p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-blue-500" />
+                  Media Management
+                </h1>
+                <p className="text-gray-600 mt-1">Upload and organize your event media</p>
+              </div>
 
-        {/* Media Gallery */}
-        <div className="flex-1 overflow-auto">
-          {eventId ? (
-            <MediaGallery
-              eventId={eventId}
-              key={refreshKey}
-              onDeleteSuccess={() => setRefreshKey((prev) => prev + 1)}
-            />
-          ) : (
-            <div className="text-center text-gray-500">
-              No event selected for media management
+              <div className="flex gap-3">
+                {event.isPublished ? (
+                  <>
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
+                      onClick={() => window.open(event.publishedUrl, "_blank")}
+                    >
+                      <Eye className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                      View Live Site
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-blue-300 text-blue-700 hover:bg-blue-50 shadow-md hover:shadow-lg transition-all duration-300 group"
+                      onClick={() => {
+                        navigator.clipboard.writeText(event.publishedUrl || "");
+                        alert("Link copied to clipboard!");
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+                      Copy Link
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
+                    onClick={handlePublish}
+                  >
+                    <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
+                    Publish Event
+                  </Button>
+                )}
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 overflow-auto p-6 space-y-6">
+            {/* Upload Section */}
+            <Card className="border-blue-200 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-blue-600" />
+                  Upload Media
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gradient-to-br from-blue-50 to-white rounded-lg p-4">
+                  {eventId && (
+                    <FileUploader
+                      eventId={eventId}
+                      onUploadSuccess={() => setRefreshKey((prev) => prev + 1)}
+                      refreshKey={refreshKey}
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Media Gallery */}
+            <Card className="border-blue-200 hover:shadow-lg transition-all duration-300 flex-1">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Image className="w-5 h-5 text-blue-600" />
+                  Media Gallery
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 ml-auto">
+                    {mediaItems.length} items
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <div className="bg-gradient-to-br from-blue-50/50 to-white rounded-lg p-4 h-full">
+                  {eventId ? (
+                    <MediaGallery
+                      eventId={eventId}
+                      key={refreshKey}
+                      onDeleteSuccess={() => setRefreshKey((prev) => prev + 1)}
+                    />
+                  ) : (
+                    <div className="text-center text-gray-500 py-12">
+                      <Image className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No event selected for media management</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
-      {/* Edit Info Modal */}
+      {/* Edit Modal */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white text-gray-900 rounded-lg shadow-lg p-8 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Edit Event Info</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95 duration-300">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Edit3 className="w-5 h-5 text-blue-600" />
+              Edit Event Info
+            </h2>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -337,18 +440,18 @@ const AdminEventPage = () => {
                 .filter((field) => field !== "pin")
                 .map((field) => (
                   <div key={field}>
-                    <label className="block text-sm font-bold capitalize mb-1">
-                      {field}
+                    <label className="block text-sm font-medium text-gray-700 mb-2 capitalize flex items-center gap-2">
+                      {field === 'location' && <MapPin className="w-3 h-3 text-blue-500" />}
+                      {field === 'eventDate' && <Calendar className="w-3 h-3 text-blue-500" />}
+                      {field === 'eventDate' ? 'Date' : field}
                     </label>
                     {field === "eventDate" ? (
                       <input
                         type="date"
-                        className="w-full p-2 rounded-md border-2 border-black shadow-sm"
+                        className="w-full p-3 rounded-lg border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
                         value={
                           editForm?.eventDate
-                            ? (editForm.eventDate as DateWrapper).getDisplayFormat(
-                                "YYYY-MM-DD"
-                              )
+                            ? (editForm.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD")
                             : ""
                         }
                         onChange={(e) =>
@@ -361,19 +464,19 @@ const AdminEventPage = () => {
                     ) : field === "description" ? (
                       <textarea
                         value={editForm?.[field] || ""}
-                        className="w-full p-2 rounded-md border-2 border-black text-gray-900 shadow-sm"
+                        className="w-full p-3 rounded-lg border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
                         onChange={(e) =>
                           setEditForm({
                             ...editForm!,
                             [field]: e.target.value,
                           })
                         }
-                        rows={2}
+                        rows={3}
                       />
                     ) : (
                       <input
                         type="text"
-                        className="w-full rounded-md border-2 border-black p-2 shadow-sm"
+                        className="w-full p-3 rounded-lg border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
                         value={editForm?.[field] || ""}
                         onChange={(e) =>
                           setEditForm({
@@ -385,20 +488,21 @@ const AdminEventPage = () => {
                     )}
                   </div>
                 ))}
-              <div className="flex justify-end gap-2 mt-6">
-                <button
+              <div className="flex justify-end gap-3 mt-8">
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={handleCloseEditModal}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                  className="border-gray-300 hover:bg-gray-50"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
                 >
-                  Save
-                </button>
+                  Save Changes
+                </Button>
               </div>
             </form>
           </div>
