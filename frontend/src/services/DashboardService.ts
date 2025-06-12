@@ -12,6 +12,7 @@ export interface EventDto {
   image: string;
   link: string;
   date: string;
+  publishedUrl:string;
 }
 
 export interface CoverDto {
@@ -30,7 +31,7 @@ export const getPortfolio = async (id : String): Promise<PortfolioDto> => {
 }
 
 export const getPortfolioSite = async (name : String): Promise<PortfolioDto> => {
-    const response = await APIService.get<PortfolioDto>(`${env.VITE_PORTFOLIO_URL}/getport/${name}`);
+    const response = await APIService.get<PortfolioDto>(`${env.VITE_PUBLIC_EVENTS_URL}/getport/${name}`);
     return response.data;
 }
 
@@ -38,7 +39,7 @@ export const getPortfolioevents = async (
   userId: string
 ): Promise<EventDto[]> => {
   const response = await APIService.get<EventDto[]>(
-    `${env.VITE_PORTFOLIO_URL}/events/${userId}`
+    `${env.VITE_PUBLIC_EVENTS_URL}/events/${userId}`
   );
   return response.data;
 };
@@ -60,7 +61,7 @@ export const getPorteventCover = async (
   eventId: string
 ): Promise<CoverDto> => {
   const response = await APIService.get<CoverDto>(
-    `${env.VITE_PORTFOLIO_URL}/eventcover/${eventId}`
+    `${env.VITE_PUBLIC_EVENTS_URL}/porteventcover/${eventId}`
   );
   return response.data;
 };

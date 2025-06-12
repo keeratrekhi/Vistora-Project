@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Trash2, Camera, Sparkles, User } from "lucide-react";
 
+
+const env = import.meta.env;
+
+
 function useQuery() {
   const { search } = useLocation();
   return React.useMemo(() => new URLSearchParams(search), [search]);
@@ -65,7 +69,7 @@ const Portfolio: React.FC = () => {
     }
     try {
        const res = await fetch(
-    `http://localhost:3000/s3/portfoliocover/${encodeURIComponent(name)}?userId=${encodeURIComponent(userId)}`,
+    `${env.VITE_PUBLIC_EVENTS_URL}/portfoliocover/${encodeURIComponent(name)}?userId=${encodeURIComponent(userId)}`,
     { credentials: "include" }
   );
 
@@ -193,7 +197,7 @@ const res = await fetch(
             </p>
 
             {/* Enhanced upload/delete controls for owner */}
-            {currentUser.id === userId && (
+            {/* {currentUser.id === userId && (
               <Card className="mt-8 bg-white/10 backdrop-blur-md border-white/20 shadow-2xl animate-in fade-in-0 slide-in-from-bottom-8 duration-1000 delay-500">
                 <CardContent className="p-6">
                   <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -243,7 +247,7 @@ const res = await fetch(
                   
                 </CardContent>
               </Card>
-            )}
+            )} */}
           </div>
         </section>
 

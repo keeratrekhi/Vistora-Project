@@ -17,7 +17,7 @@ router.delete("/mediacover/:eventId/:fileName", deleteCoverController as Request
 //Portfolio routes
 
 router.post("/uploadportfoliocover/:name", uploadPortfolioCoverController as RequestHandler);
-router.get("/portfoliocover/:name", getPortfolioCoverController as RequestHandler);
+// router.get("/portfoliocover/:name", getPortfolioCoverController as RequestHandler);
 router.delete("/portfoliocover/:name/:fileName", deletePortfolioCoverController as RequestHandler);
 
 

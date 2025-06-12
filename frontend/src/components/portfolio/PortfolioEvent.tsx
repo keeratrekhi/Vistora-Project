@@ -79,7 +79,7 @@ const PortfolioEvent: React.FC<Props> = ({ id }) => {
               key={evt.id}
               className="flex flex-col h-full transform transition-all duration-300 hover:-translate-y-2"
             >
-              <Link to={evt.link} className="flex-1 block h-full">
+              <a href={evt.publishedUrl}  target="_blank"  rel="noopener noreferrer" className="flex-1 block h-full">
                 <div className="h-full bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
                   <div className="p-6">
                     <ImageCard
@@ -89,7 +89,7 @@ const PortfolioEvent: React.FC<Props> = ({ id }) => {
                     />
                   </div>
                 </div>
-              </Link>
+              </a>
             </div>
           ))}
         </div>

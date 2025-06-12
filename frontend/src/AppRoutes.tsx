@@ -62,6 +62,11 @@ export const NonAuthenticateRoutes: RouteObject[] = [
   element: <EventGalleryPage />,
   withLayout: false
 },
+{
+    path: PORTFOLIO_ROUTE,
+    element: <Portfolio />,
+    withLayout: false,
+  },
 
 ];
 
@@ -93,11 +98,7 @@ export const AuthenticateRoutes: RouteObject[] = [
     element: <PortfolioInfo />,
     withLayout: true,
   },
-  {
-    path: PORTFOLIO_ROUTE,
-    element: <Portfolio />,
-    withLayout: false,
-  },
+  
   {
     path : EVENT_SHARE_ROUTE,
     element : <EventShare />,
