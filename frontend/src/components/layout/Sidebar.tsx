@@ -15,6 +15,10 @@ interface SidebarItem {
   linkTo: string;
 }
 
+interface SidebarProps {
+  isOpen: boolean;
+}
+
 const sidebarItems: SidebarItem[] = [
   {
     id: "home",
@@ -42,7 +46,7 @@ const sidebarItems: SidebarItem[] = [
   },
 ];
 
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const [activeSection, setActiveSection] = useState<string>("");
   const navigate = useNavigate();
 
@@ -64,7 +68,9 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 shadow-2xl backdrop-blur-lg animate-slide-in-left">
+    <aside className={`fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 shadow-2xl backdrop-blur-lg transition-transform duration-300 ease-in-out z-40 ${
+      isOpen ? 'transform translate-x-0' : 'transform -translate-x-full'
+    }`}>
       <nav className="p-4">
         <ul className="space-y-3">
           {sidebarItems.map((item, index) => {

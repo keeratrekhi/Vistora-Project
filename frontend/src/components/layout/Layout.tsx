@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Navbar from "./Navbar";
 import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import { SignOutSuccess } from "@/redux/user/slice";
 
 const Layout: React.FC = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -34,11 +35,22 @@ const Layout: React.FC = () => {
     }
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-poppins">
-      <Navbar onProfileClick={handleProfileClick} onLogout={handleLogout} />
-      <Sidebar />
-      <main className="pt-16 ml-64 min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800">
+      <Navbar 
+        onProfileClick={handleProfileClick} 
+        onLogout={handleLogout}
+        onToggleSidebar={toggleSidebar}
+        isSidebarOpen={isSidebarOpen}
+      />
+      <Sidebar isOpen={isSidebarOpen} />
+      <main className={`pt-16 min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800 transition-all duration-300 ${
+        isSidebarOpen ? 'ml-64' : 'ml-0'
+      }`}>
         <div className="p-6">
           <Outlet />
         </div>

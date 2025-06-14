@@ -2,13 +2,16 @@ import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { LogOut, User } from "lucide-react";
 import VistoraLogo from "@/assets/logos/captus-name-logo.jpg";
+import HamburgerMenu from "./HamburgerMenu";
 
 interface NavbarProps {
   onProfileClick: () => void;
   onLogout: () => void;
+  onToggleSidebar: () => void;
+  isSidebarOpen: boolean;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onProfileClick, onLogout }) => {
+const Navbar: React.FC<NavbarProps> = ({ onProfileClick, onLogout, onToggleSidebar, isSidebarOpen }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -51,8 +54,9 @@ const Navbar: React.FC<NavbarProps> = ({ onProfileClick, onLogout }) => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700/50 z-50 px-6 flex items-center justify-between shadow-2xl backdrop-blur-lg animate-fade-in">
-      {/* Left Section - Logo */}
-      <div className="flex items-center">
+      {/* Left Section - Hamburger Menu & Logo */}
+      <div className="flex items-center gap-4">
+        <HamburgerMenu isOpen={isSidebarOpen} onClick={onToggleSidebar} />
         <div className="inline-flex items-center justify-center w-24 h-12 rounded-xl hover:scale-105 transition-transform duration-300">
           <img 
             src={VistoraLogo} 
