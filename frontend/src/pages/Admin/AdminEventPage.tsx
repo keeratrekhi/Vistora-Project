@@ -11,10 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import QRCode from "react-qr-code";
 import EventCoverImage from "@/components/EventImageCover";
-import { Calendar, MapPin, Users, Edit3, Eye, Copy, Sparkles, QrCode, Upload, Image, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, Users, Edit3, Eye, Copy, Sparkles, QrCode, Upload, Image, ArrowLeft, Settings } from "lucide-react";
 import { AccessType } from "@/enums/AccessType";
 import { Switch } from "@/components/ui/switch";
-
+import CollapsibleSection from "@/components/CollapsibleSection";
+import EventVisibilityPopup from "@/components/EventVisibilityPopup";
 
 interface UpdateEventPayload {
   id: string;
@@ -29,7 +30,7 @@ interface UpdateEventPayload {
 }
 
 const AdminEventPage = () => {
-  // ... keep existing code (all state variables and hooks)
+  
   const navigate = useNavigate();
   const { id: eventId } = useParams<{ id: string }>();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -45,8 +46,8 @@ const AdminEventPage = () => {
   const [accessType, setAccessType] = useState<AccessType.Public | AccessType.Private>(AccessType.Public);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
   const [publishAccessType, setPublishAccessType] = useState<AccessType>(AccessType.Public);
+  const [isVisibilityPopupOpen, setIsVisibilityPopupOpen] = useState(false);
 
-  // ... keep existing code (all functions and event handlers)
   const openPublishModal = () => {
     setPublishAccessType(event?.accessType || AccessType.Public);
     setIsPublishModalOpen(true);
@@ -164,7 +165,7 @@ const AdminEventPage = () => {
     [event, eventId, fetchEventData]
   );
 
- const handlePublish = async (accessType: AccessType) => {
+  const handlePublish = async (accessType: AccessType) => {
     if (!event || !eventId) return;
 
     try {
@@ -192,34 +193,32 @@ const AdminEventPage = () => {
     }
   };
 
-  
- const handleAccessTypeChange = async (newAccessType: AccessType.Public | AccessType.Private) => {
-  if (!event || !eventId) return;
+  const handleAccessTypeChange = async (newAccessType: AccessType.Public | AccessType.Private) => {
+    if (!event || !eventId) return;
 
-  try {
-    const eventDateString = 
-      typeof event.eventDate === "string"
-        ? event.eventDate
-        : (event.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
+    try {
+      const eventDateString = 
+        typeof event.eventDate === "string"
+          ? event.eventDate
+          : (event.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
 
-    const payload: UpdateEventPayload = {
-      id: eventId,
-      accessType: newAccessType,
-      eventDate: eventDateString,
-    };
+      const payload: UpdateEventPayload = {
+        id: eventId,
+        accessType: newAccessType,
+        eventDate: eventDateString,
+      };
 
-    console.log(payload);
-    await updateEvent(payload);
-    await fetchEventData();
-  } catch (err) {
-    console.error("Failed to update access type", err);
-  }
-};
+      console.log(payload);
+      await updateEvent(payload);
+      await fetchEventData();
+    } catch (err) {
+      console.error("Failed to update access type", err);
+    }
+  };
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800 flex items-center justify-center relative overflow-hidden">
-        {/* <GeometricPattern /> */}
         <div className="bg-slate-800/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-slate-700/50 animate-fade-in">
           <div className="flex items-center space-x-4">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
@@ -236,7 +235,6 @@ const AdminEventPage = () => {
   if (!event) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800 flex items-center justify-center relative overflow-hidden">
-        {/* <GeometricPattern /> */}
         <div className="w-full max-w-md mx-4 animate-fade-in">
           <div className="bg-slate-800/90 backdrop-blur-xl rounded-3xl border border-slate-700/50 shadow-2xl p-8 text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-full flex items-center justify-center border border-red-500/30">
@@ -258,17 +256,24 @@ const AdminEventPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800 relative overflow-hidden">
-      {/* <GeometricPattern />
-      <FloatingIcons /> */}
-      
       <div className="flex h-screen relative z-10">
         {/* Sidebar */}
         <div className="w-80 bg-gradient-to-br from-slate-900 via-black to-slate-800 backdrop-blur-xl shadow-2xl border-r border-slate-700/50 overflow-y-auto animate-slide-in-left">
           <div className="p-6 space-y-6">
             {/* Header */}
             <div className="text-center relative animate-fade-in">
+              
+            <Button
+              onClick={() => navigate(ADMIN_EVENTS_ROUTE)}
+              className="w-50% bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-2xl animate-fade-in mb-5 mr-44"
+              style={{animationDelay: '0.1s'}}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            
               <div className="absolute -top-2 -right-2 text-purple-400 animate-pulse">
-                <Sparkles className="w-6 h-6" />
+                {/* <Sparkles className="w-6 h-6" /> */}
               </div>
               <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
                 Event Dashboard
@@ -276,45 +281,70 @@ const AdminEventPage = () => {
               <p className="text-sm text-slate-400 mt-1">Manage with love</p>
             </div>
 
-            <Button
-              onClick={() => navigate(DASHBOARD_ROUTE)}
-              className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-2xl animate-fade-in"
-              style={{animationDelay: '0.1s'}}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
 
-            {/* Cover Image Section */}
-            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-800 rounded-2xl border border-slate-600/50 hover:shadow-lg transition-all duration-300 group animate-fade-in" style={{animationDelay: '0.2s'}}>
-              <div className="p-4 pb-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2 text-white">
-                  <Image className="w-4 h-4 text-purple-400" />
-                  Cover Image
-                </h3>
-              </div>
-              <div className="px-4 pb-4">
-                <div className="relative rounded-lg overflow-hidden bg-gradient-to-br from-purple-500/20 to-pink-500/20 group-hover:scale-[1.02] transition-transform duration-300">
-                  <EventCoverImage
-                    eventId={eventId}
-                    currentCoverUrl={event.coverImageUrl || null}
-                    onCoverImageChanged={updateEventCoverImage}
-                  />
+            {/* Event Management Section */}
+            <CollapsibleSection
+              title="Event Management"
+              icon={<Settings className="w-4 h-4 text-purple-400" />}
+              defaultExpanded={true}
+              animationDelay="0.2s"
+            >
+              <div className="space-y-4">
+                {/* Cover Image */}
+                <div>
+                  <h4 className="text-xs font-medium text-slate-300 mb-2 flex items-center gap-2">
+                    <Image className="w-3 h-3 text-purple-400" />
+                    Cover Image
+                  </h4>
+                  <div className="relative rounded-lg overflow-hidden bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+                    <EventCoverImage
+                      eventId={eventId}
+                      currentCoverUrl={event.coverImageUrl || null}
+                      onCoverImageChanged={updateEventCoverImage}
+                    />
+                  </div>
+                </div>
+
+                
+                {/* QR Code */}
+                <div>
+                  <h4 className="text-xs font-medium text-slate-300 mb-2 flex items-center gap-2">
+                    <QrCode className="w-3 h-3 text-purple-400" />
+                    QR Code
+                  </h4>
+                  {event.publishedUrl ? (
+                    <div className="bg-white p-4 rounded-lg border-2 border-dashed border-purple-300 text-center hover:border-purple-400 transition-colors duration-200">
+                      <QRCode
+                        size={128}
+                        style={{
+                          height: "auto",
+                          maxWidth: "100%",
+                          width: "100%",
+                        }}
+                        value={event.publishedUrl}
+                        viewBox={`0 0 256 256`}
+                      />
+                      <p className="text-xs text-slate-600 mt-2">Scan to view event</p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-slate-400">
+                      <QrCode className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">Publish to generate QR code</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
+            </CollapsibleSection>
 
-            {/* Event Details */}
-            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-800 rounded-2xl border border-slate-600/50 hover:shadow-lg transition-all duration-300 animate-fade-in" style={{animationDelay: '0.3s'}}>
-              <div className="p-4 pb-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2 text-white">
-                  <Calendar className="w-4 h-4 text-purple-400" />
-                  Event Details
-                </h3>
-              </div>
-              <div className="px-4 pb-4 space-y-4">
+            {/* Event Details Section */}
+            <CollapsibleSection
+              title="Event Details"
+              icon={<Calendar className="w-4 h-4 text-purple-400" />}
+              animationDelay="0.3s"
+            >
+              <div className="space-y-4">
                 {displayFields.map((field, index) => (
-                  <div key={field} className="animate-fade-in" style={{ animationDelay: `${0.4 + index * 0.1}s` }}>
+                  <div key={field}>
                     <div className="flex items-center gap-2 mb-1">
                       {field === 'location' && <MapPin className="w-3 h-3 text-purple-400" />}
                       {field === 'eventDate' && <Calendar className="w-3 h-3 text-purple-400" />}
@@ -332,50 +362,19 @@ const AdminEventPage = () => {
                     </div>
                   </div>
                 ))}
+                              {/* Edit Button */}
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-2xl group"
+                  onClick={handleOpenEditModal}
+                >
+                  <Edit3 className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
+                  Edit
+                </Button>
               </div>
-            </div>
 
-            {/* Edit Button */}
-            <Button
-              className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-2xl group animate-fade-in"
-              onClick={handleOpenEditModal}
-              style={{animationDelay: '0.8s'}}
-            >
-              <Edit3 className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform duration-300" />
-              Edit Event Info
-            </Button>
 
-            {/* QR Code Section */}
-            <div className="bg-gradient-to-br from-slate-900 via-black to-slate-800 rounded-2xl border border-slate-600/50 hover:shadow-lg transition-all duration-300 animate-fade-in" style={{animationDelay: '0.9s'}}>
-              <div className="p-4 pb-3">
-                <h3 className="text-sm font-semibold flex items-center gap-2 text-white">
-                  <QrCode className="w-4 h-4 text-purple-400" />
-                  QR Code
-                </h3>
-              </div>
-              <div className="px-4 pb-4">
-                {event.publishedUrl ? (
-                  <div className="bg-white p-4 rounded-lg border-2 border-dashed border-purple-300 text-center hover:border-purple-400 transition-colors duration-200">
-                    <QRCode
-                      size={128}
-                      style={{
-                        height: "auto",
-                        maxWidth: "100%",
-                        width: "100%",
-                      }}
-                      value={event.publishedUrl}
-                      viewBox={`0 0 256 256`}
-                    />
-                    <p className="text-xs text-slate-600 mt-2">Scan to view event</p>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-slate-400">
-                    <QrCode className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Publish to generate QR code</p>
-                  </div>
-                )}
-              </div>
-            </div>
+
+            </CollapsibleSection>
           </div>
         </div>
 
@@ -386,7 +385,7 @@ const AdminEventPage = () => {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <Sparkles className="w-6 h-6 text-purple-400" />
+                  {/* <Sparkles className="w-6 h-6 text-purple-400" /> */}
                   Media Management
                 </h1>
                 <p className="text-slate-400 mt-1">Upload and organize your event media</p>
@@ -395,17 +394,17 @@ const AdminEventPage = () => {
               <div className="flex gap-3">
                 {event.isPublished ? (
                   <>
-                    <div className="flex items-center gap-2 bg-slate-700/50 px-4 py-2 rounded-lg border border-slate-600/50 backdrop-blur-sm">
-                      <span className="text-sm text-slate-300">Public</span>
-                      <Switch
-                        checked={accessType === AccessType.Private}
-                        onCheckedChange={handleAccessToggle}
-                      />
-                      <span className="text-sm text-slate-300">Private</span>
-                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsVisibilityPopupOpen(true)}
+                      className="border-slate-600 text-slate-300 hover:bg-slate-700/50 shadow-md hover:shadow-lg transition-all duration-300 group bg-slate-800/50 backdrop-blur-sm transform hover:scale-[1.02] hover:-translate-y-1"
+                    >
+                      <Settings className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+                      Event Visibility
+                    </Button>
 
                     <Button
-                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:scale-[1.02] hover:-translate-y-1"
+                      className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:scale-[1.02] hover:-translate-y-1"
                       onClick={() => window.open(event.publishedUrl, "_blank")}
                     >
                       <Eye className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
@@ -428,7 +427,7 @@ const AdminEventPage = () => {
                     className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-2xl group"
                     onClick={openPublishModal}
                   >
-                    <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
+                    {/* <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" /> */}
                     Publish Event
                   </Button>
                 )}
@@ -439,18 +438,15 @@ const AdminEventPage = () => {
           {/* Content Area */}
           <div className="flex-1 overflow-auto p-6 space-y-6">
             {/* Upload Section */}
-                          
-                <div className="rounded-lg p-4 ">
-                  {eventId && (
-                    <FileUploader
-                      eventId={eventId}
-                      onUploadSuccess={() => setRefreshKey((prev) => prev + 1)}
-                      refreshKey={refreshKey}
-                    />
-                  )}
-                
-              </div>
-           
+            <div className="rounded-lg p-4">
+              {eventId && (
+                <FileUploader
+                  eventId={eventId}
+                  onUploadSuccess={() => setRefreshKey((prev) => prev + 1)}
+                  refreshKey={refreshKey}
+                />
+              )}
+            </div>
 
             {/* Media Gallery */}
             <div className="bg-gradient-to-br from-slate-900 via-black to-slate-800 backdrop-blur-xl rounded-2xl border border-slate-700/50 hover:shadow-lg transition-all duration-300 flex-1 animate-fade-in" style={{animationDelay: '0.2s'}}>
@@ -461,7 +457,7 @@ const AdminEventPage = () => {
                 </h3>
               </div>
               <div className="px-6 pb-6 flex-1">
-                <div className=" rounded-lg p-4 h-full border border-slate-600/20">
+                <div className="rounded-lg p-4 h-full border border-slate-600/20">
                   {eventId ? (
                     <MediaGallery
                       eventId={eventId}
@@ -479,6 +475,15 @@ const AdminEventPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Event Visibility Popup */}
+        <EventVisibilityPopup
+          isOpen={isVisibilityPopupOpen}
+          onClose={() => setIsVisibilityPopupOpen(false)}
+          accessType={accessType}
+          onAccessToggle={handleAccessToggle}
+          isPublished={event.isPublished}
+        />
 
         {/* Edit Modal */}
         {isEditModalOpen && (
@@ -569,7 +574,7 @@ const AdminEventPage = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
             <div className="bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 border border-slate-700/50 animate-scale-in">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-                <Sparkles className="w-5 h-5 text-purple-400" />
+                {/* <Sparkles className="w-5 h-5 text-purple-400" /> */}
                 Publish Event
               </h2>
               <p className="text-slate-400 mb-6">
@@ -644,7 +649,7 @@ const AdminEventPage = () => {
                   className="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-xl"
                   onClick={() => handlePublish(publishAccessType)}
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
+                  {/* <Sparkles className="w-4 h-4 mr-2" /> */}
                   Publish as {publishAccessType === AccessType.Public ? 'Public' : 'Private'}
                 </Button>
               </div>

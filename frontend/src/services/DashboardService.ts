@@ -85,7 +85,7 @@ export const uploadCoverImage = async(userId : string, portfolioName : string, f
 }
 
 export const fetchCoverImage = async (userId : string, portfolioName: string): Promise<{}> => {
-    const response = await APIService.get(`${env.VITE_BUCKET_URL}/portfoliocover/${encodeURIComponent(portfolioName)}?userId=${encodeURIComponent(userId)}`);
+    const response = await APIService.get(`${env.VITE_PUBLIC_EVENTS_URL}/portfoliocover/${encodeURIComponent(portfolioName)}?userId=${encodeURIComponent(userId)}`);
     return response.data;
 }
 
