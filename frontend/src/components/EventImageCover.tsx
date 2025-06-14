@@ -123,7 +123,7 @@ const EventCoverImage: React.FC<EventCoverImageProps> = ({
 
   return (
     <div className="relative group w-full">
-      <div className="w-full h-48 overflow-hidden rounded-lg bg-gray-100">
+      <div className="w-full h-48 overflow-hidden rounded-lg bg-slate-">
         <img
           src={displayedUrl}
           alt="Event cover"

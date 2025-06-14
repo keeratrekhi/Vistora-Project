@@ -261,9 +261,9 @@ const MediaGallery = ({
   );
 
   return (
-    <div>
+    <div className=''>
       {/* Selection Control Bar */}
-      <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-blue-300 p-3 mb-4 rounded-lg shadow flex flex-wrap justify-between items-center gap-2">
+      <div className="sticky top-0 z-10 bg-gradient-to-br from-slate-900 via-black to-slate-800  text-gray-200 p-3 mb-4 rounded-lg shadow flex flex-wrap justify-between items-center gap-2">
         <div className="flex items-center">
           <input
             type="checkbox"
