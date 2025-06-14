@@ -7,7 +7,7 @@ import {
   getPortfolio,
   uploadCoverImage,
 } from "@/services/DashboardService";
-import { PortfolioDto, PortfolioInfoModel } from "../../models/Portfolio";
+import { PortfolioDto, PortfolioInfoModel } from "@/models/Portfolio";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -27,12 +27,16 @@ import {
   Upload,
   User,
   Youtube,
+  Sparkles,
+  Edit,
+  Save,
+  X,
+  Camera,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import FormInput from "@/components/ui/Form/FormInput";
 import toast from "react-hot-toast";
 import LoadingSpinner from "@/components/ui/loading-spinner";
+import CollapsibleSection from "@/components/CollapsibleSection";
 
 interface CoverFile {
   url: string;
@@ -59,10 +63,10 @@ const getSocialIcon = (platform: string) => {
 };
 
 const PortfolioInfo: React.FC = () => {
+  // ... keep existing code (state declarations and hooks)
   const [fetchingPortfolio, setFetchingPortfolio] = useState<boolean>(false);
   const [fetchingCoverImage, setFetchingCoverImage] = useState<boolean>(false);
-  const [uploadingCoverImage, setUploadingCoverImage] =
-    useState<boolean>(false);
+  const [uploadingCoverImage, setUploadingCoverImage] = useState<boolean>(false);
   const [updatingPortfolio, setUpdatingPortfolio] = useState<boolean>(false);
   const [portfolioInfo, setPortfolioInfo] = useState<PortfolioDto | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -110,10 +114,9 @@ const PortfolioInfo: React.FC = () => {
   );
   const userId = currentUser.id;
 
-  // Fetch portfolio
+  // ... keep existing code (useEffect, fetchPortfolio, fetchCover, handleSubmit functions)
   useEffect(() => {
     if (!userId) return;
-
     fetchPortfolio();
   }, [userId]);
 
@@ -129,7 +132,6 @@ const PortfolioInfo: React.FC = () => {
     }
   };
 
-  // Fetch cover image
   const fetchCover = async (portfolioName: string) => {
     if (!portfolioName || !userId) {
       setCoverImage(null);
@@ -137,7 +139,6 @@ const PortfolioInfo: React.FC = () => {
     }
     try {
       setFetchingCoverImage(true);
-
       const response: any = await fetchCoverImage(userId, portfolioName);
       const covers: CoverFile[] = response.covers;
       setCoverImage(covers.length > 0 ? covers[0] : null);
@@ -149,7 +150,6 @@ const PortfolioInfo: React.FC = () => {
     }
   };
 
-  // Whenever portfolio is fetched (and has a name), fetch its cover
   useEffect(() => {
     if (portfolioInfo?.name) {
       fetchCover(portfolioInfo.name);
@@ -176,19 +176,16 @@ const PortfolioInfo: React.FC = () => {
         websiteLink: portfolioInfo?.websiteLink || "",
       },
     });
-  }, [portfolioInfo]);
+  }, [portfolioInfo, reset]);
 
   const handlePortfolioInfoSubmit = async (data: PortfolioInfoFormData) => {
     try {
       setUpdatingPortfolio(true);
-      // Create or update portfolio on backend
       await createPortfolio({
         userId,
         generalInfo: data.generalInfo,
         socialLinks: data.socialLinks,
       } as PortfolioInfoModel);
-
-      // Re-fetch portfolio JSON
       const refreshed = await getPortfolio(userId);
       setPortfolioInfo(refreshed);
       toast.success("Portfolio updated");
@@ -204,17 +201,14 @@ const PortfolioInfo: React.FC = () => {
     setShowForm(true);
   };
 
-  // Upload cover handler
   const handleUploadCover = async () => {
     try {
       setUploadingCoverImage(true);
       if (!fileInputRef.current?.files?.[0] || !portfolioInfo?.name) return;
       const file = fileInputRef.current.files[0];
       const formDataFile = new FormData();
-      formDataFile.append("file", file); // Changed from "coverImage" to "file"
-
+      formDataFile.append("file", file);
       await uploadCoverImage(userId, portfolioInfo.name, formDataFile);
-
       setUploadingCoverImage(false);
       await fetchCover(portfolioInfo.name);
       toast.success("Cover image uploaded");
@@ -226,13 +220,11 @@ const PortfolioInfo: React.FC = () => {
     }
   };
 
-  // Delete cover handler
   const handleDeleteCover = async () => {
     if (!coverImage || !portfolioInfo?.name) return;
     if (!window.confirm("Are you sure you want to delete the cover image?")) {
       return;
     }
-
     try {
       setUploadingCoverImage(true);
       await deleteCoverImage(userId, coverImage.name, portfolioInfo.name);
@@ -245,11 +237,12 @@ const PortfolioInfo: React.FC = () => {
     }
   };
 
+  // ... keep existing code (loading states)
   if (fetchingPortfolio) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-          <LoadingSpinner message="Fetching Portfolio..." />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800 flex items-center justify-center">
+        <div className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50 shadow-2xl animate-scale-in">
+          <LoadingSpinner message="Loading your amazing portfolio..." />
         </div>
       </div>
     );
@@ -257,952 +250,439 @@ const PortfolioInfo: React.FC = () => {
 
   if (updatingPortfolio) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-          <LoadingSpinner message="Updating Portfolio..." />
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+        <div className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 backdrop-blur-xl rounded-3xl p-8 border border-slate-700/50 shadow-2xl animate-scale-in">
+          <LoadingSpinner message="Updating your portfolio..." />
         </div>
       </div>
     );
   }
 
+  // ... keep existing code (portfolio info display when !showForm)
   if (portfolioInfo && !showForm) {
     return (
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-800">
-              Portfolio Information
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800 relative overflow-hidden">
+        {/* Background decorations */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-40 h-40 bg-purple-500/30 rounded-full blur-xl animate-float"></div>
+          <div className="absolute top-1/3 right-32 w-32 h-32 bg-pink-500/30 rounded-full blur-xl animate-float" style={{animationDelay: '2s'}}></div>
+          <div className="absolute bottom-32 left-1/4 w-48 h-48 bg-cyan-500/30 rounded-full blur-xl animate-float" style={{animationDelay: '4s'}}></div>
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-12">
+          {/* Header */}
+          <div className="text-center mb-12 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 rounded-2xl mb-6 animate-float">
+              <User className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent mb-4">
+              Portfolio Dashboard
             </h1>
-            <div className="flex space-x-3">
+            <p className="text-slate-400 text-lg">Manage your creative portfolio</p>
+          </div>
+
+          {/* Action Bar */}
+          <div className="flex justify-between items-center mb-8 animate-slide-in-left" style={{animationDelay: '0.2s'}}>
+            <div className="flex space-x-4">
               <button
                 onClick={handleUpdateInfo}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 "
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white px-6 py-3 rounded-xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-2xl group font-semibold"
               >
+                <Edit className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
                 Update Info
               </button>
               <a
-                href={`/portfolio/${encodeURIComponent(
-                  portfolioInfo.name
-                )}`}
+                href={`/portfolio/${encodeURIComponent(portfolioInfo.name)}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="flex items-center gap-2 bg-slate-700/50 text-white px-6 py-3 rounded-xl hover:bg-slate-600/50 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-xl group border border-slate-600"
               >
-                <button className="bg-blue-100 text-black px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors flex items-center space-x-2 ">
-                  <ExternalLink className="w-4 h-4" />
-                  <span>View Portfolio</span>
-                </button>
+                <ExternalLink className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+                View Portfolio
               </a>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Profile Card */}
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2 text-xl">
-                  <User className="w-5 h-5 text-blue-600" />
-                  <span>Profile Information</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-600 mb-1 uppercase tracking-wide">
-                        Name
-                      </h4>
-                      <p className="text-lg text-slate-800">
-                        {portfolioInfo.name}
-                      </p>
-                    </div>
+            <div className="lg:col-span-2 bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-8 animate-slide-in-left" style={{animationDelay: '0.3s'}}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-xl flex items-center justify-center border border-purple-500/30">
+                  <User className="w-6 h-6 text-purple-400" />
+                </div>
+                <h2 className="text-2xl font-bold text-white">Profile Information</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">Name</h4>
+                    <p className="text-xl text-white font-semibold">{portfolioInfo.name}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">Description</h4>
+                    <p className="text-slate-300 leading-relaxed">{portfolioInfo.description}</p>
+                  </div>
+                </div>
 
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-cyan-400" />
                     <div>
-                      <h4 className="text-sm font-bold text-slate-600 mb-1 uppercase tracking-wide">
-                        Description
-                      </h4>
-                      <p className="text-slate-700 leading-relaxed">
-                        {portfolioInfo.description}
-                      </p>
+                      <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wide">Contact</h4>
+                      <p className="text-white">{portfolioInfo.contact}</p>
                     </div>
                   </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <Phone className="w-4 h-4 text-blue-600" />
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wide">
-                          Contact
-                        </h4>
-                        <p className="text-slate-800">
-                          {portfolioInfo.contact}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      <Mail className="w-4 h-4 text-blue-600" />
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wide">
-                          Email
-                        </h4>
-                        <p className="text-slate-800">{portfolioInfo.email}</p>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-pink-400" />
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wide">Email</h4>
+                      <p className="text-white">{portfolioInfo.email}</p>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Cover Image Card */}
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2 text-xl">
-                  <Upload className="w-5 h-5 text-blue-600" />
-                  <span>Cover Image</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {fetchingCoverImage || uploadingCoverImage ? (
-                  <div className="flex items-center justify-center h-40 border-2 border-dashed border-gray-400">
-                    {fetchingCoverImage && (
-                      <LoadingSpinner message="Fetching cover image..." />
-                    )}
-                    {uploadingCoverImage && (
-                      <LoadingSpinner message="Updating cover image..." />
-                    )}
+            <div className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-8 animate-slide-in-right" style={{animationDelay: '0.4s'}}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-pink-500/20 to-pink-600/20 rounded-xl flex items-center justify-center border border-pink-500/30">
+                  <Camera className="w-6 h-6 text-pink-400" />
+                </div>
+                <h2 className="text-xl font-bold text-white">Cover Image</h2>
+              </div>
+
+              {fetchingCoverImage || uploadingCoverImage ? (
+                <div className="flex items-center justify-center h-48 border-2 border-dashed border-slate-600 rounded-xl">
+                  <LoadingSpinner message={fetchingCoverImage ? "Loading..." : "Uploading..."} />
+                </div>
+              ) : coverImage ? (
+                <div className="space-y-4">
+                  <div className="w-full h-48 bg-slate-700 rounded-xl overflow-hidden">
+                    <img src={coverImage.url} alt="Cover" className="w-full h-full object-cover" />
                   </div>
-                ) : coverImage ? (
-                  <div className="space-y-3">
-                    <div className="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <img
-                        src={coverImage.url}
-                        alt="Current Cover"
-                        className="w-full h-full object-cover"
+                  <div className="flex gap-2">
+                    <label className="flex-1 flex items-center justify-center cursor-pointer bg-slate-700/50 hover:bg-slate-600/50 text-white rounded-lg px-4 py-2 transition-colors border border-slate-600">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Change
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleUploadCover}
+                        className="hidden"
+                        ref={fileInputRef}
                       />
-                    </div>
-                    <div className="flex space-x-2">
-                      <label
-                        htmlFor="cover-upload"
-                        className="flex-1 flex items-center justify-center cursor-pointer border border-gray-300 rounded-lg px-3 py-1 bg-white hover:bg-blue-200 transition-colors"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Change
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg"
-                          onChange={handleUploadCover}
-                          className="hidden"
-                          id="cover-upload"
-                          ref={fileInputRef}
-                        />
-                      </label>
-                      <Button
-                        onClick={handleDeleteCover}
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 border-red-300 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg"
-                      onChange={handleUploadCover}
-                      className="hidden"
-                      ref={fileInputRef}
-                      id="cover-upload"
-                    />
-                    <label
-                      htmlFor="cover-upload"
-                      className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 cursor-pointer transition-colors"
-                    >
-                      <div className="text-center">
-                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <span className="text-sm text-gray-600 font-medium">
-                          Upload Cover Image
-                        </span>
-                        <p className="text-xs text-gray-400 mt-1">
-                          PNG or JPG, max 2MB
-                        </p>
-                      </div>
                     </label>
+                    <button
+                      onClick={handleDeleteCover}
+                      className="px-4 py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUploadCover}
+                    className="hidden"
+                    ref={fileInputRef}
+                    id="cover-upload"
+                  />
+                  <label
+                    htmlFor="cover-upload"
+                    className="flex items-center justify-center w-full h-48 border-2 border-dashed border-slate-600 rounded-xl hover:border-slate-500 cursor-pointer transition-colors group"
+                  >
+                    <div className="text-center">
+                      <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3 group-hover:text-slate-300 transition-colors" />
+                      <span className="text-slate-300 font-medium">Upload Cover Image</span>
+                      <p className="text-slate-500 text-sm mt-1">PNG or JPG, max 2MB</p>
+                    </div>
+                  </label>
+                </div>
+              )}
+            </div>
 
             {/* Address Card */}
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2 text-xl">
-                  <MapPin className="w-5 h-5 text-blue-600" />
-                  <span>Address</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-slate-800">{portfolioInfo.area}</p>
-                  <p className="text-slate-700">
-                    {portfolioInfo.city}, {portfolioInfo.state}
-                  </p>
-                  <p className="text-slate-700">{portfolioInfo.postalCode}</p>
-                  <p className="text-slate-600">{portfolioInfo.country}</p>
+            <div className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-8 animate-slide-in-left" style={{animationDelay: '0.5s'}}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-xl flex items-center justify-center border border-emerald-500/30">
+                  <MapPin className="w-6 h-6 text-emerald-400" />
                 </div>
-              </CardContent>
-            </Card>
+                <h2 className="text-xl font-bold text-white">Address</h2>
+              </div>
+              <div className="space-y-3">
+                <p className="text-white font-medium">{portfolioInfo.area}</p>
+                <p className="text-slate-300">{portfolioInfo.city}, {portfolioInfo.state}</p>
+                <p className="text-slate-300">{portfolioInfo.postalCode}</p>
+                <p className="text-slate-400">{portfolioInfo.country}</p>
+              </div>
+            </div>
 
             {/* Social Links Card */}
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2 text-xl">
-                  <Globe className="w-5 h-5 text-blue-600" />
-                  <span>Social Media & Links</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    "facebookLink",
-                    "twitterLink",
-                    "instagramLink",
-                    "youtubeLink",
-                    "websiteLink",
-                  ].map((key) => {
-                    const value = portfolioInfo[key];
-                    const platform = key.replace("Link", "");
-                    const displayName =
-                      platform.charAt(0).toUpperCase() + platform.slice(1);
-
-                    return (
-                      <div
-                        key={key}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          {getSocialIcon(platform)}
-                          <span className="font-bold text-slate-700">
-                            {displayName}
-                          </span>
-                        </div>
-                        {value ? (
-                          <a
-                            href={value}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-700 text-sm truncate max-w-32 flex items-center space-x-1"
-                          >
-                            <span>Visit</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        ) : (
-                          <span className="text-slate-400 text-sm">
-                            Not set
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+            <div className="lg:col-span-2 bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-8 animate-slide-in-right" style={{animationDelay: '0.6s'}}>
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 rounded-xl flex items-center justify-center border border-cyan-500/30">
+                  <Globe className="w-6 h-6 text-cyan-400" />
                 </div>
-              </CardContent>
-            </Card>
+                <h2 className="text-xl font-bold text-white">Social Media & Links</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { key: "facebookLink", platform: "facebook", name: "Facebook" },
+                  { key: "twitterLink", platform: "twitter", name: "Twitter" },
+                  { key: "instagramLink", platform: "instagram", name: "Instagram" },
+                  { key: "youtubeLink", platform: "youtube", name: "YouTube" },
+                  { key: "websiteLink", platform: "website", name: "Website" },
+                ].map(({ key, platform, name }) => {
+                  const value = portfolioInfo[key as keyof PortfolioDto];
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl border border-slate-600/50 hover:bg-slate-700/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {getSocialIcon(platform)}
+                        <span className="font-medium text-white">{name}</span>
+                      </div>
+                      {value ? (
+                        <a
+                          href={value}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-cyan-400 hover:text-cyan-300 text-sm flex items-center gap-1 transition-colors"
+                        >
+                          <span>Visit</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <span className="text-slate-500 text-sm">Not set</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
     );
   }
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-xl shadow-md p-5">
-        <h1 className="text-2xl font-semibold text-slate-800 mb-6 ">
-          {portfolioInfo
-            ? "Update Portfolio Information"
-            : "Portfolio Information"}
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-20 left-20 w-40 h-40 bg-purple-500/30 rounded-full blur-xl animate-float"></div>
+        <div className="absolute top-1/3 right-32 w-32 h-32 bg-pink-500/30 rounded-full blur-xl animate-float" style={{animationDelay: '2s'}}></div>
+        <div className="absolute bottom-32 left-1/4 w-48 h-48 bg-cyan-500/30 rounded-full blur-xl animate-float" style={{animationDelay: '4s'}}></div>
+      </div>
 
-        <form
-          onSubmit={handleSubmit(handlePortfolioInfoSubmit)}
-          className="space-y-6"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-slate-800 mb-4 ">
-                  General Information
-                </h3>
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-12">
+        {/* Header */}
+        <div className="text-center mb-12 animate-fade-in">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 via-pink-500 to-cyan-500 rounded-2xl mb-6 animate-float">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent mb-4">
+            {portfolioInfo ? "Update Portfolio" : "Create Portfolio"}
+          </h1>
+          <p className="text-slate-400 text-lg">Set up your creative portfolio</p>
+        </div>
 
-                <div className="space-y-4">
+        <div className="bg-gradient-to-br from-slate-800/90 via-slate-900/90 to-black/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-700/50 p-8 animate-scale-in" style={{animationDelay: '0.2s'}}>
+          <form onSubmit={handleSubmit(handlePortfolioInfoSubmit)} className="space-y-6">
+            
+            {/* General Information */}
+            <CollapsibleSection
+              title="General Information"
+              icon={<User className="w-5 h-5 text-purple-400" />}
+              defaultExpanded={true}
+              animationDelay="0.3s"
+            >
+              <div className="space-y-6">
+                <div className="animate-fade-in" style={{animationDelay: '0.4s'}}>
                   <FormInput
-                    label="Name"
+                    label="Studio Name"
                     type="text"
                     name="generalInfo.name"
-                    placeholder="Enter studio name"
+                    placeholder="Enter your studio name"
                     register={register}
                     error={errors.generalInfo?.name}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.generalInfo?.name
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
-                  />
-
-                  <FormInput
-                    label="Description"
-                    type="textarea"
-                    name="generalInfo.description"
-                    placeholder="Enter studio description"
-                    register={register}
-                    error={errors.generalInfo?.description}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.generalInfo?.description
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
-                  />
-
-                  <FormInput
-                    label="Contact"
-                    type="text"
-                    name="generalInfo.contact"
-                    placeholder="Enter contact number"
-                    register={register}
-                    error={errors.generalInfo?.contact}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.generalInfo?.contact
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
-                  />
-
-                  <FormInput
-                    label="Email"
-                    type="email"
-                    name="generalInfo.email"
-                    placeholder="Enter email address"
-                    register={register}
-                    error={errors.generalInfo?.email}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.generalInfo?.email
-                        ? "border-red-300"
-                        : "border-gray-300"
+                    className={`w-full px-4 py-3 bg-slate-700/50 border rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
+                      errors.generalInfo?.name ? "border-red-500 animate-shake" : "border-slate-600"
                     }`}
                   />
                 </div>
+
+                <div className="animate-fade-in" style={{animationDelay: '0.5s'}}>
+                  <label className="block text-slate-300 font-medium mb-2">Description</label>
+                  <textarea
+                    placeholder="Tell us about your studio"
+                    {...register("generalInfo.description")}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 resize-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="animate-fade-in" style={{animationDelay: '0.6s'}}>
+                    <FormInput
+                      label="Contact"
+                      type="text"
+                      name="generalInfo.contact"
+                      placeholder="Phone number"
+                      register={register}
+                      error={errors.generalInfo?.contact}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                    />
+                  </div>
+                  <div className="animate-fade-in" style={{animationDelay: '0.7s'}}>
+                    <FormInput
+                      label="Email"
+                      type="email"
+                      name="generalInfo.email"
+                      placeholder="Email address"
+                      register={register}
+                      error={errors.generalInfo?.email}
+                      className={`w-full px-4 py-3 bg-slate-700/50 border rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
+                        errors.generalInfo?.email ? "border-red-500 animate-shake" : "border-slate-600"
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
+            </CollapsibleSection>
 
-              <div>
-                <h3 className="text-lg font-medium text-slate-800 mb-4 ">
-                  Address
-                </h3>
-
-                <div className="space-y-4">
+            {/* Address Information */}
+            <CollapsibleSection
+              title="Address Information"
+              icon={<MapPin className="w-5 h-5 text-emerald-400" />}
+              defaultExpanded={false}
+              animationDelay="0.4s"
+            >
+              <div className="space-y-4">
+                <div className="animate-fade-in" style={{animationDelay: '0.9s'}}>
                   <FormInput
-                    label="Area"
+                    label="Area/Neighborhood"
                     type="text"
                     name="generalInfo.address.area"
-                    placeholder="Enter area"
+                    placeholder="Area/Neighborhood"
                     register={register}
                     error={errors.generalInfo?.address?.area}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.generalInfo?.address?.area
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
-                  />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="">
-                      <FormInput
-                        label="City"
-                        type="text"
-                        name="generalInfo.address.city"
-                        placeholder="Enter city"
-                        register={register}
-                        error={errors.generalInfo?.address?.city}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.generalInfo?.address?.city
-                            ? "border-red-300"
-                            : "border-gray-300"
-                        }`}
-                      />
-
-                      <FormInput
-                        label="Country"
-                        type="text"
-                        name="generalInfo.address.country"
-                        placeholder="Enter country"
-                        register={register}
-                        error={errors.generalInfo?.address?.country}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.generalInfo?.address?.country
-                            ? "border-red-300"
-                            : "border-gray-300"
-                        }`}
-                      />
-                    </div>
-
-                    <div>
-                      <FormInput
-                        label="State"
-                        type="text"
-                        name="generalInfo.address.state"
-                        placeholder="Enter state"
-                        register={register}
-                        error={errors.generalInfo?.address?.state}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.generalInfo?.address?.state
-                            ? "border-red-300"
-                            : "border-gray-300"
-                        }`}
-                      />
-
-                      <FormInput
-                        label="Postal Code"
-                        type="text"
-                        name="generalInfo.address.postalCode"
-                        placeholder="Enter postal code"
-                        register={register}
-                        error={errors.generalInfo?.address?.postalCode}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                          errors.generalInfo?.address?.postalCode
-                            ? "border-red-300"
-                            : "border-gray-300"
-                        }`}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-slate-800 mb-4 ">
-                  Social Links
-                </h3>
-
-                <div className="space-y-4">
-                  <FormInput
-                    label="Facebook"
-                    type="text"
-                    name="socialLinks.facebookLink"
-                    placeholder="https://facebook.com/username"
-                    register={register}
-                    error={errors.socialLinks?.facebookLink}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.socialLinks?.facebookLink
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
-                  />
-
-                  <FormInput
-                    label="Twitter"
-                    type="text"
-                    name="socialLinks.twitterLink"
-                    placeholder="https://twitter.com/username"
-                    register={register}
-                    error={errors.socialLinks?.twitterLink}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.socialLinks?.twitterLink
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
-                  />
-
-                  <FormInput
-                    label="Instagram"
-                    type="text"
-                    name="socialLinks.instagramLink"
-                    placeholder="https://instagram.com/username"
-                    register={register}
-                    error={errors.socialLinks?.instagramLink}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.socialLinks?.instagramLink
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
-                  />
-
-                  <FormInput
-                    label="YouTube"
-                    type="text"
-                    name="socialLinks.youtubeLink"
-                    placeholder="https://youtube.com/username"
-                    register={register}
-                    error={errors.socialLinks?.youtubeLink}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.socialLinks?.youtubeLink
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
-                  />
-
-                  <FormInput
-                    label="Website"
-                    type="text"
-                    name="socialLinks.websiteLink"
-                    placeholder="https://website.com"
-                    register={register}
-                    error={errors.socialLinks?.websiteLink}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                      errors.socialLinks?.websiteLink
-                        ? "border-red-300"
-                        : "border-gray-300"
-                    }`}
+                    className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-300"
                   />
                 </div>
-              </div>
-
-              {/* <div>
-                <h3 className="text-lg font-medium text-slate-800 mb-4 ">
-                  Cover Image
-                </h3>
-                {coverImage ? (
-                  <div className="space-y-3">
-                    <div className="w-full h-40 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <img
-                        src={coverImage.url}
-                        alt="Current Cover"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex space-x-2">
-                      <label
-                        htmlFor="cover-upload"
-                        className="flex-1 flex items-center justify-center cursor-pointer border border-gray-300 rounded-lg px-3 py-1 bg-white hover:bg-blue-200 transition-colors"
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Change
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg"
-                          onChange={handleUploadCover}
-                          className="hidden"
-                          id="cover-upload"
-                          ref={fileInputRef}
-                        />
-                      </label>
-                      <Button
-                        onClick={handleDeleteCover}
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 border-red-300 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg"
-                      onChange={handleUploadCover}
-                      className="hidden"
-                      id="cover-upload"
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="animate-fade-in" style={{animationDelay: '1.0s'}}>
+                    <FormInput
+                      label="City"
+                      type="text"
+                      name="generalInfo.address.city"
+                      placeholder="City"
+                      register={register}
+                      error={errors.generalInfo?.address?.city}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-300"
                     />
-                    <label
-                      htmlFor="cover-upload"
-                      className="flex items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 cursor-pointer transition-colors"
-                    >
-                      <div className="text-center">
-                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <span className="text-sm text-gray-600 font-medium">
-                          Upload Cover Image
-                        </span>
-                        <p className="text-xs text-gray-400 mt-1">
-                          PNG or JPG, max 2MB
-                        </p>
-                      </div>
-                    </label>
                   </div>
-                )}
-              </div> */}
-            </div>
-          </div>
+                  <div className="animate-fade-in" style={{animationDelay: '1.1s'}}>
+                    <FormInput
+                      label="State"
+                      type="text"
+                      name="generalInfo.address.state"
+                      placeholder="State"
+                      register={register}
+                      error={errors.generalInfo?.address?.state}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-300"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="animate-fade-in" style={{animationDelay: '1.2s'}}>
+                    <FormInput
+                      label="Country"
+                      type="text"
+                      name="generalInfo.address.country"
+                      placeholder="Country"
+                      register={register}
+                      error={errors.generalInfo?.address?.country}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-300"
+                    />
+                  </div>
+                  <div className="animate-fade-in" style={{animationDelay: '1.3s'}}>
+                    <FormInput
+                      label="Postal Code"
+                      type="text"
+                      name="generalInfo.address.postalCode"
+                      placeholder="Postal Code"
+                      register={register}
+                      error={errors.generalInfo?.address?.postalCode}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all duration-300"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CollapsibleSection>
 
-          <div className="flex justify-end space-x-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowForm(false)}
-              className=""
+            {/* Social Links */}
+            <CollapsibleSection
+              title="Social Media & Links"
+              icon={<Globe className="w-5 h-5 text-cyan-400" />}
+              defaultExpanded={false}
+              animationDelay="0.5s"
             >
-              Cancel
-            </Button>
-            <Button type="submit" className="">
-              Save Information
-            </Button>
-          </div>
-        </form>
+              <div className="space-y-6">
+                {[
+                  { name: "facebookLink", label: "Facebook", placeholder: "https://facebook.com/username", icon: <Facebook className="w-4 h-4" /> },
+                  { name: "twitterLink", label: "Twitter", placeholder: "https://twitter.com/username", icon: <Twitter className="w-4 h-4" /> },
+                  { name: "instagramLink", label: "Instagram", placeholder: "https://instagram.com/username", icon: <Instagram className="w-4 h-4" /> },
+                  { name: "youtubeLink", label: "YouTube", placeholder: "https://youtube.com/username", icon: <Youtube className="w-4 h-4" /> },
+                  { name: "websiteLink", label: "Website", placeholder: "https://yourwebsite.com", icon: <Globe className="w-4 h-4" /> },
+                ].map((social, index) => (
+                  <div key={social.name} className="animate-fade-in" style={{animationDelay: `${0.6 + index * 0.1}s`}}>
+                    <label className="flex items-center gap-2 text-slate-300 font-medium mb-2">
+                      {social.icon}
+                      {social.label}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={social.placeholder}
+                      {...register(`socialLinks.${social.name}` as keyof PortfolioInfoFormData)}
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300"
+                    />
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6 animate-fade-in" style={{animationDelay: '1.5s'}}>
+              {portfolioInfo && (
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="px-8 py-4 text-slate-300 border border-slate-600 rounded-xl hover:bg-slate-700/50 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-xl group"
+                >
+                  <X className="w-4 h-4 mr-2 inline group-hover:rotate-90 transition-transform duration-300" />
+                  Cancel
+                </button>
+              )}
+              <button
+                type="submit"
+                className="px-8 py-4 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white rounded-xl hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-2xl group font-semibold"
+              >
+                <Save className="w-4 h-4 mr-2 inline group-hover:rotate-12 transition-transform duration-300" />
+                {portfolioInfo ? "Update Portfolio" : "Create Portfolio"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
-  // return (
-  //   <div className="">
-  //     {portfolio && !editMode ? (
-  //       <div className="text-black space-y-4">
-  //         <p>
-  //           <strong>Name:</strong> {portfolio.name}
-  //         </p>
-  //         <p>
-  //           <strong>Description:</strong> {portfolio.description}
-  //         </p>
-  //         <p>
-  //           <strong>Contact:</strong> {portfolio.contact}
-  //         </p>
-  //         <p>
-  //           <strong>Email:</strong> {portfolio.email}
-  //         </p>
-  //         <p>
-  //           <strong>Address:</strong>{" "}
-  //           {`${portfolio.area}, ${portfolio.city}, ${portfolio.state}, ${portfolio.country} - ${portfolio.postalCode}`}
-  //         </p>
-  //         <p>
-  //           <strong>Social Links:</strong>
-  //         </p>
-  //         <p>
-  //           <strong>Facebook:</strong> {portfolio.facebookLink}
-  //         </p>
-  //         <p>
-  //           <strong>Twitter:</strong> {portfolio.twitterLink}
-  //         </p>
-  //         <p>
-  //           <strong>Instagram:</strong> {portfolio.instagramLink}
-  //         </p>
-  //         <p>
-  //           <strong>YouTube:</strong> {portfolio.youtubeLink}
-  //         </p>
-  //         <p>
-  //           <strong>Website:</strong> {portfolio.websiteLink}
-  //         </p>
-
-  //         <div className="flex flex-col space-y-2">
-  //           <button
-  //             onClick={handleEdit}
-  //             className="hover:shadow-form w-full rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white"
-  //           >
-  //             Update Information
-  //           </button>
-
-  //           <a
-  //             href={`/portfolio/${encodeURIComponent(
-  //               portfolio.name
-  //             )}?userId=${encodeURIComponent(userId)}`}
-  //             target="_blank"
-  //             rel="noopener noreferrer"
-  //           >
-  //             <button className="hover:shadow-form w-full rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white">
-  //               View Portfolio
-  //             </button>
-  //           </a>
-
-  //           {/* COVER UPLOAD/DELETE SECTION */}
-  //           <div className="pt-4 border-t border-gray-200">
-  //             <p className="font-semibold mb-2">Cover Image</p>
-
-  //             {cover ? (
-  //               <div className="space-y-2">
-  //                 {/* Preview */}
-  //                 <div className="w-full max-w-sm h-40 bg-gray-100 overflow-hidden rounded-md">
-  //                   <img
-  //                     src={cover.url}
-  //                     alt="Current Cover"
-  //                     className="w-full h-full object-cover"
-  //                   />1
-  //                 </div>
-  //                 <button
-  //                   onClick={handleDeleteCover}
-  //                   className="w-full max-w-sm text-white bg-red-600 hover:bg-red-700 rounded-md py-2"
-  //                 >
-  //                   Delete Cover
-  //                 </button>
-  //               </div>
-  //             ) : (
-  //               <p className="text-gray-500 mb-2">
-  //                 No cover image uploaded yet.
-  //               </p>
-  //             )}
-
-  //             <label className="inline-flex items-center max-w-sm w-full bg-white bg-opacity-20 hover:bg-opacity-30 rounded-md cursor-pointer py-2 px-4 mt-2">
-  //               <span>{cover ? "Replace Cover" : "Upload Cover"}</span>
-  //               <input
-  //                 type="file"
-  //                 accept="image/*"
-  //                 className="sr-only"
-  //                 ref={fileInputRef}
-  //                 onChange={() => {
-  //                   if (fileInputRef.current?.files?.[0]) {
-  //                     handleUploadCover();
-  //                   }
-  //                 }}
-  //                 disabled={uploading}
-  //               />
-  //             </label>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     ) : (
-  //       // EDIT MODE: show form to enter portfolio info
-  //       <div className="flex items-center justify-center p-12">
-  //         <div className="mx-auto w-full max-w-[550px] ">
-  //           <form onSubmit={handleSubmit(handlePortfolioInfoSubmit)}>
-  //             {/* Company Name */}
-  //             <div className="mb-5">
-  //               <label
-  //                 htmlFor="name"
-  //                 className="mb-3 block text-base font-medium text-[#07074D]"
-  //               >
-  //                 Company Name
-  //               </label>
-  //               <input
-  //                 onChange={handleInfoChange}
-  //                 type="text"
-  //                 required
-  //                 name="generalInfo.name"
-  //                 id="name"
-  //                 value={formData.generalInfo.name}
-  //                 placeholder="Name"
-  //                 className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //               />
-  //             </div>
-
-  //             {/* Description */}
-  //             <div className="mb-5">
-  //               <label
-  //                 htmlFor="description"
-  //                 className="mb-3 block text-base font-medium text-[#07074D]"
-  //               >
-  //                 Description
-  //               </label>
-  //               <input
-  //                 onChange={handleInfoChange}
-  //                 type="text"
-  //                 required
-  //                 name="generalInfo.description"
-  //                 id="description"
-  //                 value={formData.generalInfo.description}
-  //                 placeholder="Description"
-  //                 className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //               />
-  //             </div>
-
-  //             {/* Phone */}
-  //             <div className="mb-5">
-  //               <label
-  //                 htmlFor="phone"
-  //                 className="mb-3 block text-base font-medium text-[#07074D]"
-  //               >
-  //                 Phone Number
-  //               </label>
-  //               <input
-  //                 onChange={handleInfoChange}
-  //                 type="text"
-  //                 name="generalInfo.contact"
-  //                 id="phone"
-  //                 value={formData.generalInfo.contact}
-  //                 placeholder="Enter your phone number"
-  //                 className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //               />
-  //             </div>
-
-  //             {/* Email */}
-  //             <div className="mb-5">
-  //               <label
-  //                 htmlFor="email"
-  //                 className="mb-3 block text-base font-medium text-[#07074D]"
-  //               >
-  //                 Email Address
-  //               </label>
-  //               <input
-  //                 onChange={handleInfoChange}
-  //                 type="email"
-  //                 name="generalInfo.email"
-  //                 id="email"
-  //                 value={formData.generalInfo.email}
-  //                 placeholder="Enter your email"
-  //                 className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //               />
-  //             </div>
-
-  //             {/* Address */}
-  //             <div className="mb-5 pt-3">
-  //               <label className="mb-5 block text-base font-medium text-[#07074D]">
-  //                 Address Details
-  //               </label>
-  //               <div className="-mx-3 flex flex-wrap">
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="generalInfo.address.area"
-  //                       id="area"
-  //                       value={formData.generalInfo.address.area}
-  //                       placeholder="Enter area"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="generalInfo.address.city"
-  //                       id="city"
-  //                       value={formData.generalInfo.address.city}
-  //                       placeholder="Enter city"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="generalInfo.address.state"
-  //                       id="state"
-  //                       value={formData.generalInfo.address.state}
-  //                       placeholder="Enter state"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="generalInfo.address.country"
-  //                       id="country"
-  //                       value={formData.generalInfo.address.country}
-  //                       placeholder="Enter country"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="generalInfo.address.postalCode"
-  //                       id="postalCode"
-  //                       value={formData.generalInfo.address.postalCode}
-  //                       placeholder="Post Code"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //               </div>
-  //             </div>
-
-  //             {/* Social Links */}
-  //             <div className="mb-5 pt-3">
-  //               <label className="mb-5 block text-base font-medium text-[#07074D]">
-  //                 Social Media Links
-  //               </label>
-  //               <div className="-mx-3 flex flex-wrap">
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="socialLinks.twitterLink"
-  //                       id="twitter"
-  //                       value={formData.socialLinks.twitterLink}
-  //                       placeholder="Twitter"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="socialLinks.facebookLink"
-  //                       id="facebook"
-  //                       value={formData.socialLinks.facebookLink}
-  //                       placeholder="Facebook"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="socialLinks.instagramLink"
-  //                       id="instagram"
-  //                       value={formData.socialLinks.instagramLink}
-  //                       placeholder="Instagram"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="socialLinks.youtubeLink"
-  //                       id="youtube"
-  //                       value={formData.socialLinks.youtubeLink}
-  //                       placeholder="YouTube"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //                 <div className="w-full px-3 sm:w-1/2">
-  //                   <div className="mb-5">
-  //                     <input
-  //                       onChange={handleInfoChange}
-  //                       type="text"
-  //                       name="socialLinks.websiteLink"
-  //                       id="website"
-  //                       value={formData.socialLinks.websiteLink}
-  //                       placeholder="Website"
-  //                       className="w-full rounded-md border border-[#e0e0e0] bg-white py-3 px-6 text-base font-medium text-[#6B7280] outline-none focus:border-[#6A64F1] focus:shadow-md"
-  //                     />
-  //                   </div>
-  //                 </div>
-  //               </div>
-  //             </div>
-
-  //             {/* Save / Cancel */}
-  //             <div className="flex space-x-4">
-  //               <button
-  //                 type="submit"
-  //                 className="hover:shadow-form w-full rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white"
-  //               >
-  //                 Save Information
-  //               </button>
-
-  //               {portfolio && (
-  //                 <button
-  //                   type="button"
-  //                   className="hover:shadow-form w-full rounded-md bg-[#6A64F1] py-3 px-8 text-center text-base font-semibold text-white"
-  //                   onClick={() => setEditMode(false)}
-  //                 >
-  //                   Cancel
-  //                 </button>
-  //               )}
-  //             </div>
-  //           </form>
-  //         </div>
-  //       </div>
-  //     )}
-  //   </div>
-  // );
 };
 
 export default PortfolioInfo;
