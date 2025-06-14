@@ -31,7 +31,7 @@ import AdminEventPage from "./pages/Admin/AdminEventPage";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
 import { CreateEvent } from "./pages/Admin/CreateEvent";
-import EventGalleryPage from "./components/EventGalleryPage";
+import EventGalleryPage from "./pages/EventGalleryPage";
 
 
 interface RouteObject {

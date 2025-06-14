@@ -5,65 +5,56 @@ import { getUserIdFromCookie } from "../utils/helper";
 const prisma = new PrismaClient();
 
 
-export const CreateEvent: RequestHandler = async (req, res) => {
-  try {
-    const userId = getUserIdFromCookie(req);
-    if (!userId) {
-      res.status(403).json({ message: "Unauthorized" });
-      return;
-    }
+const generatePin = () => Math.floor(1000 + Math.random() * 9000); // Generate a 4-digit PIN
+const generateUniquePin = async (userId: string): Promise<number> => {
+  let uniquePin: number = generatePin();
+  let isUnique = false;
 
-    const {
-      title,
-      description,
-      eventDate,    // may be undefined or invalid
-      location,
-      coverImage,
-      pin,          // string or null/undefined
-    } = req.body as {
-      title: string;
-      description?: string;
-      eventDate?: string;
-      location?: string;
-      coverImage?: string;
-      pin?: string | null;
-    };
+  while (!isUnique) {
+    uniquePin = generatePin();
 
-    // 1. Parse eventDate, fallback to now if missing/invalid
-    let dateObj = eventDate ? new Date(eventDate) : new Date();
-    if (isNaN(dateObj.getTime())) {
-      dateObj = new Date();
-    }
-
-    // 2. Parse PIN only if exactly 4 digits, else null
-    const finalPin: number | null =
-      typeof pin === "string" && /^\d{4}$/.test(pin)
-        ? Number(pin)
-        : null;
-
-    const created = await prisma.event.create({
-      data: {
-        title,
-        description:       description ?? "",
-        eventDate:         dateObj,
-        publishedDateTime: new Date(),
-        location:          location ?? "",
-        coverImageUrl:     coverImage ?? "",
-        pin:               finalPin,
-        userId,
+    // Check if the PIN already exists for the user
+    const existingEvent = await prisma.event.findFirst({
+      where: {
+        id: userId,
+        pin: uniquePin,
       },
     });
 
-    res.status(200).json({
-      message: "Event created",
-      eventId: created.id,
-      pin:      finalPin,  // echo what was stored
+    if (!existingEvent) {
+      isUnique = true; // The PIN is unique
+    }
+  }
+
+  return uniquePin;
+};
+
+export const CreateEvent: RequestHandler = async (req, res) => {
+  try {
+    const userId = getUserIdFromCookie(req);
+    if(!userId){
+      res.status(403).json({ message: "You are not authorized to get this event" });
+      return;
+    }
+    const {title, description, eventDate,location,coverImage} = req.body;
+    const pin = await generateUniquePin(userId);
+    const createdEvent = await prisma.event.create({
+      data: {
+        title: title,
+        description: description,
+        eventDate: new Date(eventDate.date),
+        publishedDateTime: new Date(),
+        location: location,
+        coverImageUrl: coverImage,
+        pin: pin, // Assuming pin is part of CreateEventModel
+        userId:userId,
+      },
     });
+    res.status(200).json({ message: "Event created successfully",eventId: createdEvent.id });
     return;
   } catch (err) {
-    console.error("[CreateEvent]", err);
+    console.log(err);
     res.status(500).json({ message: "Internal server error" });
-    return;
   }
 };
 
@@ -161,7 +152,7 @@ export const UpdateEvent: RequestHandler = async (req, res) => {
     }
     
     // Handle other fields
-    const allowedFields = ['title', 'description', 'location', 'isPublished', 'publishedUrl'];
+    const allowedFields = ['title', 'description', 'location', 'isPublished', 'publishedUrl','accessType'];
     for (const field of allowedFields) {
       if (updateFields[field] !== undefined) {
         updateData[field] = updateFields[field];

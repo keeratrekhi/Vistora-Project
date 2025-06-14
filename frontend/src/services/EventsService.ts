@@ -1,3 +1,4 @@
+import { AccessType } from "@/enums/AccessType";
 import { CreateEventModel, Event } from "../models/Event";
 import { APIResponse, APIService } from "./APIService";
 import DateWrapper from "@/utils/DateUtil";
@@ -9,11 +10,11 @@ interface UpdateEventPayload {
   title?: string;
   description?: string;
   location?: string;
-  eventDate?: string;      // or Date | ISO string, whichever your API expects
+  eventDate?: string;      // or ISO string
   isPublished?: boolean;
   publishedUrl?: string;
   coverImageUrl?: string; 
-  // pin, coverImageUrl, etc, only if you intend to update them
+  accessType?: AccessType;     
 }
 
 const env = import.meta.env;

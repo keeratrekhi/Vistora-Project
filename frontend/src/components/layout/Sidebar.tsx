@@ -12,7 +12,7 @@ interface SidebarItem {
   id: string;
   label: string;
   icon: React.ComponentType<any>;
-  linkTo: string; // Optional linkTo property for navigation
+  linkTo: string;
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -64,28 +64,38 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="fixed left-0 top-16 w-60 h-[calc(100vh-4rem)] bg-gray-50 border-r border-gray-200 shadow-sm">
+    <aside className="fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700/50 shadow-2xl backdrop-blur-lg animate-slide-in-left">
       <nav className="p-4">
-        <ul className="space-y-2">
-          {sidebarItems.map((item) => {
+        <ul className="space-y-3">
+          {sidebarItems.map((item, index) => {
             const isActive = activeSection === item.id;
             const Icon = item.icon;
 
             return (
-              <li key={item.id}>
+              <li key={item.id} className={`animate-fade-in`} style={{ animationDelay: `${index * 100}ms` }}>
                 <button
                   onClick={() => handleSidebarItemClick(item.id, item.linkTo)}
-                  className={`w-full flex items-center mt-3 gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 text-left focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-900 transform hover:scale-105 group ${
                     isActive
-                      ? "bg-gradient-to-r from-primary to-accent text-white shadow-md"
-                      : "text-neutral hover:bg-hover-gray"
+                      ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25"
+                      : "text-slate-300 hover:bg-gradient-to-r hover:from-slate-700/50 hover:to-slate-600/50 hover:text-white"
                   }`}
                 >
                   <Icon
                     size={20}
-                    className={isActive ? "text-white" : "text-primary"}
+                    className={`transition-all duration-300 ${
+                      isActive 
+                        ? "text-white drop-shadow-sm" 
+                        : "text-cyan-400 group-hover:text-cyan-300"
+                    }`}
                   />
-                  <span className="text-md">{item.label}</span>
+                  <span className={`text-sm transition-all duration-300 ${
+                    isActive 
+                      ? "text-white font-semibold drop-shadow-sm" 
+                      : "group-hover:text-cyan-100"
+                  }`}>
+                    {item.label}
+                  </span>
                 </button>
               </li>
             );

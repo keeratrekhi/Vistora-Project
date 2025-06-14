@@ -38,7 +38,7 @@ const Layout: React.FC = () => {
     <div className="min-h-screen bg-gray-50 font-poppins">
       <Navbar onProfileClick={handleProfileClick} onLogout={handleLogout} />
       <Sidebar />
-      <main className="pt-16 ml-64 min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200">
+      <main className="pt-16 ml-64 min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-800">
         <div className="p-6">
           <Outlet />
         </div>

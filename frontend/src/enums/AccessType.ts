@@ -1,4 +1,4 @@
 export enum AccessType {
-    Public = 0,
-    PublicWithPIN = 1
+  Private = 0,
+  Public  = 1,
 }

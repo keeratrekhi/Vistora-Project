@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Event, EventMedia } from "../../models/Event";
 import { useNavigate, useParams } from "react-router-dom";
-import { ADMIN_EVENTS_ROUTE } from "../../constants/RouteContant";
+import { ADMIN_EVENTS_ROUTE, DASHBOARD_ROUTE } from "../../constants/RouteContant";
 import { getEvent, updateEvent } from "@/services/EventsService";
 import DateWrapper from "@/utils/DateUtil";
 import FileUploader from "@/components/FileUploader";
@@ -11,7 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import QRCode from "react-qr-code";
 import EventCoverImage from "@/components/EventImageCover";
-import { Calendar, MapPin, Users, Edit3, Eye, Copy, Sparkles, QrCode, Upload, Image } from "lucide-react";
+import { Calendar, MapPin, Users, Edit3, Eye, Copy, Sparkles, QrCode, Upload, Image, ArrowLeft } from "lucide-react";
+import { AccessType } from "@/enums/AccessType";
+import { Switch } from "@/components/ui/switch";
 
 interface UpdateEventPayload {
   id: string;
@@ -22,6 +24,7 @@ interface UpdateEventPayload {
   isPublished?: boolean;
   publishedUrl?: string;
   coverImageUrl?: string;
+  accessType?:AccessType;
 }
 
 const AdminEventPage = () => {
@@ -38,6 +41,20 @@ const AdminEventPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentCoverUrl, setCurrentCoverUrl] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [accessType, setAccessType] = useState<AccessType.Public | AccessType.Private>(AccessType.Public);
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [publishAccessType, setPublishAccessType] = useState<AccessType>(AccessType.Public);
+
+
+
+
+  const openPublishModal = () => {
+    setPublishAccessType(event?.accessType || AccessType.Public);
+    setIsPublishModalOpen(true);
+  };
+
+
+
 
   const displayFields = ["title", "description", "eventDate", "pin", "location"];
 
@@ -51,6 +68,7 @@ const AdminEventPage = () => {
         return;
       }
       setEvent(eventData);
+       setAccessType(eventData.accessType);
       setMediaItems(eventData.media || []);
       console.log("[AdminEventPage] fetched eventData.coverImageUrl:", eventData.coverImageUrl);
       console.log("[AdminEventPage] fetched eventData.media:", eventData.media);
@@ -64,6 +82,16 @@ const AdminEventPage = () => {
   useEffect(() => {
     fetchEventData();
   }, [eventId, fetchEventData, refreshKey]);
+
+
+
+
+  const handleAccessToggle = (checked: boolean) => {
+  const newType = checked ? AccessType.Private : AccessType.Public;
+  setAccessType(newType);             // immediately update UI
+  handleAccessTypeChange(newType);    // then persist
+};
+  
 
   const handleOpenEditModal = () => {
     setEditForm({ ...event } as Event);
@@ -144,7 +172,7 @@ const AdminEventPage = () => {
     [event, eventId, fetchEventData]
   );
 
-  const handlePublish = async () => {
+ const handlePublish = async (accessType: AccessType) => {
     if (!event || !eventId) return;
 
     try {
@@ -159,16 +187,47 @@ const AdminEventPage = () => {
         isPublished: true,
         publishedUrl: shareLink,
         eventDate: eventDateString,
+        accessType: accessType, // Include accessType in payload
       };
 
       await updateEvent(payloadToSend);
       await fetchEventData();
-      alert(`Event published successfully! Share this link: ${shareLink}`);
+      setIsPublishModalOpen(false);
+      alert(`Event published successfully as ${accessType === AccessType.Public ? "Public" : "Private"}! Share this link: ${shareLink}`);
     } catch (err) {
       alert("Failed to publish event");
       console.error(err);
     }
   };
+
+  
+ const handleAccessTypeChange = async (newAccessType: AccessType.Public | AccessType.Private) => {
+  if (!event || !eventId) return;
+
+  try {
+    const eventDateString = 
+      typeof event.eventDate === "string"
+        ? event.eventDate
+        : (event.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD");
+
+    const payload: UpdateEventPayload = {
+      id: eventId,
+      accessType: newAccessType,
+      eventDate: eventDateString,
+    };
+
+    console.log(payload);
+    await updateEvent(payload);
+    // Refresh event data from server
+    await fetchEventData();
+  } catch (err) {
+    console.error("Failed to update access type", err);
+  }
+};
+
+
+
+
 
   if (isLoading) {
     return (
@@ -224,6 +283,18 @@ const AdminEventPage = () => {
               </h2>
               <p className="text-sm text-gray-600 mt-1">Manage with love</p>
             </div>
+
+
+              <Button
+              onClick={() => navigate(DASHBOARD_ROUTE)}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
+
+
+
 
             {/* Cover Image Section */}
             <Card className="border-blue-200 hover:shadow-lg transition-all duration-300 group">
@@ -284,6 +355,7 @@ const AdminEventPage = () => {
               Edit Event Info
             </Button>
 
+
             {/* QR Code Section */}
             <Card className="border-blue-200 hover:shadow-lg transition-all duration-300">
               <CardHeader className="pb-3">
@@ -332,36 +404,45 @@ const AdminEventPage = () => {
               </div>
 
               <div className="flex gap-3">
-                {event.isPublished ? (
-                  <>
-                    <Button
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
-                      onClick={() => window.open(event.publishedUrl, "_blank")}
-                    >
-                      <Eye className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                      View Live Site
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-blue-300 text-blue-700 hover:bg-blue-50 shadow-md hover:shadow-lg transition-all duration-300 group"
-                      onClick={() => {
-                        navigator.clipboard.writeText(event.publishedUrl || "");
-                        alert("Link copied to clipboard!");
-                      }}
-                    >
-                      <Copy className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
-                      Copy Link
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
-                    onClick={handlePublish}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
-                    Publish Event
-                  </Button>
-                )}
+              {event.isPublished ? (
+  <>
+    <div className="flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
+      <span className="text-sm text-gray-700">Public</span>
+      <Switch
+  checked={accessType === AccessType.Private}
+  onCheckedChange={handleAccessToggle}
+/>
+      <span className="text-sm text-gray-700">Private</span>
+    </div>
+
+    <Button
+      className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
+      onClick={() => window.open(event.publishedUrl, "_blank")}
+    >
+      <Eye className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+      View Live Site
+    </Button>
+    <Button
+      variant="outline"
+      className="border-blue-300 text-blue-700 hover:bg-blue-50 shadow-md hover:shadow-lg transition-all duration-300 group"
+      onClick={() => {
+        navigator.clipboard.writeText(event.publishedUrl || "");
+        alert("Link copied to clipboard!");
+      }}
+    >
+      <Copy className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform duration-300" />
+      Copy Link
+    </Button>
+  </>
+) : (
+  <Button
+    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 group"
+    onClick={openPublishModal} // Fixed this line
+  >
+    <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
+    Publish Event
+  </Button>
+)}
               </div>
             </div>
           </div>
@@ -395,9 +476,6 @@ const AdminEventPage = () => {
                 <CardTitle className="flex items-center gap-2">
                   <Image className="w-5 h-5 text-blue-600" />
                   Media Gallery
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700 ml-auto">
-                    {mediaItems.length} items
-                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1">
@@ -419,16 +497,11 @@ const AdminEventPage = () => {
             </Card>
           </div>
         </div>
-      </div>
 
-      {/* Edit Modal */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95 duration-300">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Edit3 className="w-5 h-5 text-blue-600" />
-              Edit Event Info
-            </h2>
+                     {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white text-gray-900 rounded-lg shadow-lg p-8 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-4">Edit Event Info</h2>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -440,18 +513,18 @@ const AdminEventPage = () => {
                 .filter((field) => field !== "pin")
                 .map((field) => (
                   <div key={field}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 capitalize flex items-center gap-2">
-                      {field === 'location' && <MapPin className="w-3 h-3 text-blue-500" />}
-                      {field === 'eventDate' && <Calendar className="w-3 h-3 text-blue-500" />}
-                      {field === 'eventDate' ? 'Date' : field}
+                    <label className="block text-sm font-bold capitalize mb-1">
+                      {field}
                     </label>
                     {field === "eventDate" ? (
                       <input
                         type="date"
-                        className="w-full p-3 rounded-lg border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                        className="w-full p-2 rounded-md border-2 border-black shadow-sm"
                         value={
                           editForm?.eventDate
-                            ? (editForm.eventDate as DateWrapper).getDisplayFormat("YYYY-MM-DD")
+                            ? (editForm.eventDate as DateWrapper).getDisplayFormat(
+                                "YYYY-MM-DD"
+                              )
                             : ""
                         }
                         onChange={(e) =>
@@ -464,19 +537,19 @@ const AdminEventPage = () => {
                     ) : field === "description" ? (
                       <textarea
                         value={editForm?.[field] || ""}
-                        className="w-full p-3 rounded-lg border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                        className="w-full p-2 rounded-md border-2 border-black text-gray-900 shadow-sm"
                         onChange={(e) =>
                           setEditForm({
                             ...editForm!,
                             [field]: e.target.value,
                           })
                         }
-                        rows={3}
+                        rows={2}
                       />
                     ) : (
                       <input
                         type="text"
-                        className="w-full p-3 rounded-lg border border-blue-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                        className="w-full rounded-md border-2 border-black p-2 shadow-sm"
                         value={editForm?.[field] || ""}
                         onChange={(e) =>
                           setEditForm({
@@ -488,28 +561,120 @@ const AdminEventPage = () => {
                     )}
                   </div>
                 ))}
-              <div className="flex justify-end gap-3 mt-8">
-                <Button
+              <div className="flex justify-end gap-2 mt-6">
+                <button
                   type="button"
-                  variant="outline"
                   onClick={handleCloseEditModal}
-                  className="border-gray-300 hover:bg-gray-50"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
                 >
                   Cancel
-                </Button>
-                <Button
+                </button>
+                <button
                   type="submit"
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
-                  Save Changes
-                </Button>
+                  Save
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
-  );
-};
+
+
+
+
+
+      </div>
+
+      {isPublishModalOpen && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4 animate-in fade-in-0 zoom-in-95 duration-300">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            Publish Event
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Choose how you want to share this event:
+          </p>
+          
+          <div className="space-y-4 mb-6">
+            <div 
+              className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                publishAccessType === AccessType.Public 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-200 hover:border-blue-300'
+              }`}
+              onClick={() => setPublishAccessType(AccessType.Public)}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                  publishAccessType === AccessType.Public 
+                    ? 'border-blue-500 bg-blue-500' 
+                    : 'border-gray-300'
+                }`}>
+                  {publishAccessType === AccessType.Public && (
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Public Event</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Anyone with the link can view your event
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div 
+              className={`p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                publishAccessType === AccessType.Private 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-200 hover:border-blue-300'
+              }`}
+              onClick={() => setPublishAccessType(AccessType.Private)}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                  publishAccessType === AccessType.Private 
+                    ? 'border-blue-500 bg-blue-500' 
+                    : 'border-gray-300'
+                }`}>
+                  {publishAccessType === AccessType.Private && (
+                    <div className="w-2 h-2 bg-white rounded-full"></div>
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Private Event</h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Only people with the PIN can view your event
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsPublishModalOpen(false)}
+              className="border-gray-300 hover:bg-gray-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+              onClick={() => handlePublish(publishAccessType)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Publish as {publishAccessType === AccessType.Public ? 'Public' : 'Private'}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+);
+}
 
 export default AdminEventPage;

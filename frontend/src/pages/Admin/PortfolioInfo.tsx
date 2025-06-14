@@ -283,7 +283,7 @@ const PortfolioInfo: React.FC = () => {
               <a
                 href={`/portfolio/${encodeURIComponent(
                   portfolioInfo.name
-                )}?userId=${encodeURIComponent(userId)}`}
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >

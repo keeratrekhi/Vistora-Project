@@ -57,8 +57,8 @@ export const CreateEvent = () => {
           location:    data.location || "",
           coverImage:  "",
           isPublished: false,
-          accessType:  AccessType.Public,
-          pin:         data.requirePin ? Number(data.pin) : null,
+          // accessType:  AccessType.Public,
+          // pin:         data.requirePin ? Number(data.pin) : null,
         } as CreateEventModel,
         currentUser.id
       );
@@ -142,7 +142,7 @@ export const CreateEvent = () => {
           />
 
           {/* Require PIN */}
-          <div className="flex items-center">
+          {/* <div className="flex items-center">
             <input
               type="checkbox"
               {...register("requirePin")}
@@ -150,10 +150,10 @@ export const CreateEvent = () => {
               className="mr-2"
             />
             <label htmlFor="requirePin">Require 4-digit PIN to view?</label>
-          </div>
+          </div> */}
 
           {/* PIN input */}
-          {requirePin && (
+          {/* {requirePin && (
             <FormInput
               label="PIN"
               type="text"
@@ -165,7 +165,7 @@ export const CreateEvent = () => {
                 errors.pin ? "border-red-300" : "border-gray-300"
               }`}
             />
-          )}
+          )} */}
 
           {/* Actions */}
           <div className="flex justify-end space-x-3">
