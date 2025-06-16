@@ -259,17 +259,17 @@ const MediaGallery = ({
   );
 
   return (
-    <div className="space-y-4">
-      {/* Search and Filter Bar */}
-      <div className="bg-gradient-to-br from-slate-900 via-black to-slate-800 backdrop-blur-xl rounded-xl border border-slate-600/50 p-4">
-        <div className="flex flex-col lg:flex-row gap-4">
+    <div className="space-y-6">
+      {/* Filter and View Mode Controls */}
+      <div className="bg-gradient-to-tr from-slate-900 via-purple-900/20 to-slate-900  rounded-xl  border-slate-200 p-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           {/* Filter by type */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-3">
+            <Filter className="w-5 h-5 text-slate-600" />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as 'all' | 'image' | 'video')}
-              className="bg-slate-600/50 border border-slate-500/50 rounded-lg text-white px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+              className="bg-white border border-slate-300 rounded-lg text-slate-800 px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 shadow-sm"
             >
               <option value="all">All Media</option>
               <option value="image">Images</option>
@@ -278,13 +278,13 @@ const MediaGallery = ({
           </div>
 
           {/* View mode toggle */}
-          <div className="flex items-center gap-1 bg-slate-600/30 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-slate-200 rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded transition-all duration-200 ${
                 viewMode === 'grid' 
-                  ? 'bg-purple-500 text-white' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-600/50'
+                  ? 'bg-purple-500 text-white shadow-sm' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
             >
               <Grid className="w-4 h-4" />
@@ -293,8 +293,8 @@ const MediaGallery = ({
               onClick={() => setViewMode('list')}
               className={`p-2 rounded transition-all duration-200 ${
                 viewMode === 'list' 
-                  ? 'bg-purple-500 text-white' 
-                  : 'text-slate-400 hover:text-white hover:bg-slate-600/50'
+                  ? 'bg-purple-500 text-white shadow-sm' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white'
               }`}
             >
               <List className="w-4 h-4" />
@@ -305,7 +305,7 @@ const MediaGallery = ({
 
       {/* Selection Control Bar */}
       {filteredMedia.length > 0 && (
-        <div className="sticky top-0 z-10 bg-slate-700/80 backdrop-blur-xl border border-slate-600/50 rounded-xl p-4">
+        <div className="sticky top-0 z-10 bg-gradient-to-tr from-slate-900 via-purple-900/20 to-slate-900  backdrop-blur-xl  border-slate-200 rounded-xl p-4 shadow-sm">
           <div className="flex flex-wrap justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <input
@@ -317,9 +317,9 @@ const MediaGallery = ({
                   }
                 }}
                 onChange={toggleSelectAll}
-                className="w-5 h-5 rounded border-slate-500 bg-slate-600 text-purple-500 focus:ring-purple-500 focus:ring-offset-slate-700"
+                className="w-5 h-5 rounded border-slate-300 text-gray-500 focus:ring-gray-500"
               />
-              <span className="text-sm font-medium text-white">
+              <span className="text-sm font-medium text-black">
                 {selectedItems.length > 0 
                   ? `${selectedItems.length} of ${filteredMedia.length} selected`
                   : `${filteredMedia.length} item${filteredMedia.length !== 1 ? 's' : ''}`}
@@ -331,7 +331,7 @@ const MediaGallery = ({
                 <button
                   onClick={handleZipDownload}
                   disabled={downloading}
-                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50"
+                  className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50"
                 >
                   {downloading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -345,7 +345,7 @@ const MediaGallery = ({
                   <button
                     onClick={deleteSelected}
                     disabled={deleting}
-                    className="flex items-center gap-2 bg-red-500/80 hover:bg-red-500 text-white px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50"
+                    className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50"
                   >
                     {deleting ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -364,10 +364,10 @@ const MediaGallery = ({
       {/* Media Display */}
       {filteredMedia.length === 0 ? (
         <div className="text-center p-8">
-          <div className="bg-slate-700/50 rounded-xl p-6 border border-slate-600/50">
-            <Search className="w-12 h-12 mx-auto mb-4 text-slate-400 opacity-50" />
-            <h3 className="text-lg font-semibold text-white mb-2">No results found</h3>
-            <p className="text-slate-400">Try adjusting your search or filter settings</p>
+          <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+            <Search className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">No results found</h3>
+            <p className="text-slate-600">Try adjusting your filter settings</p>
           </div>
         </div>
       ) : viewMode === 'grid' ? (
@@ -378,25 +378,27 @@ const MediaGallery = ({
               key={item.url} 
               className={`
                 group relative mb-4 overflow-hidden cursor-pointer transition-all duration-300 break-inside-avoid
-                rounded-xl ${isSelected(item.name) ? 'ring-4 ring-purple-500 scale-[0.98]' : 'hover:ring-2 hover:ring-purple-400 hover:scale-[1.02]'}
+                rounded-xl shadow-sm hover:shadow-lg ${isSelected(item.name) ? 'ring-4 ring-purple-500 scale-[0.98]' : 'hover:ring-2 hover:ring-purple-400 hover:scale-[1.02]'}
               `}
               onClick={(e) => handleMediaClick(index, e)}
             >
               {/* Selection indicator */}
               <div className="absolute top-3 right-3 z-10">
                 <div 
-                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 shadow-lg ${
                     isSelected(item.name) 
                       ? 'bg-purple-500 scale-110' 
-                      : 'bg-slate-800/70 hover:bg-slate-700/70'
+                      : 'bg-white/90 hover:bg-white'
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleSelectItem(item.name);
                   }}
                 >
-                  {isSelected(item.name) && (
+                  {isSelected(item.name) ? (
                     <div className="text-white text-sm font-bold">✓</div>
+                  ) : (
+                    <div className="w-3 h-3 border-2 border-slate-400 rounded-full"></div>
                   )}
                 </div>
               </div>
@@ -405,7 +407,7 @@ const MediaGallery = ({
               {mode === "admin" && (
                 <button
                   onClick={(e) => deleteSingleItem(item.name, e)}
-                  className="absolute top-3 left-3 z-10 p-1.5 bg-red-500/80 text-white rounded-full hover:bg-red-500 transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
+                  className="absolute top-3 left-3 z-10 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110 shadow-lg"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -418,14 +420,14 @@ const MediaGallery = ({
                     e.stopPropagation();
                     handleDownload(item.name);
                   }}
-                  className="absolute bottom-3 right-3 z-10 p-1.5 bg-blue-500/80 text-white rounded-full hover:bg-blue-500 transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
+                  className="absolute bottom-3 right-3 z-10 p-1.5 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110 shadow-lg"
                 >
                   <Download className="w-4 h-4" />
                 </button>
               )}
 
               {/* Media content */}
-              <div className="w-full bg-slate-800 rounded-xl overflow-hidden">
+              <div className="w-full bg-white rounded-xl overflow-hidden shadow-sm">
                 {item.type === 'image' ? (
                   <img 
                     src={item.url} 
@@ -434,13 +436,13 @@ const MediaGallery = ({
                     className="w-full h-auto object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
-                  <div className="relative w-full bg-slate-900 flex items-center justify-center aspect-video">
-                    <Video className="w-8 h-8 text-purple-400 absolute z-10" />
+                  <div className="relative w-full bg-slate-100 flex items-center justify-center aspect-video">
+                    <Video className="w-8 h-8 text-purple-500 absolute z-10" />
                     <ReactPlayer
                       url={item.url}
                       width="100%"
                       height="100%"
-                      style={{ opacity: 0.5 }}
+                      style={{ opacity: 0.7 }}
                       muted
                       loop
                       playing={false}
@@ -458,8 +460,8 @@ const MediaGallery = ({
             <div 
               key={item.url}
               className={`
-                group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-300
-                ${isSelected(item.name) ? 'ring-4 ring-purple-500 bg-purple-500/10' : 'hover:ring-2 hover:ring-purple-400 hover:bg-slate-700/30'} bg-slate-800/50
+                group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md
+                ${isSelected(item.name) ? 'ring-4 ring-purple-500 bg-purple-50' : 'hover:ring-2 hover:ring-purple-400 hover:bg-slate-50'} bg-white border border-slate-200
               `}
               onClick={(e) => handleMediaClick(index, e)}
             >
@@ -510,7 +512,7 @@ const MediaGallery = ({
                       e.stopPropagation();
                       handleDownload(item.name);
                     }}
-                    className="p-2 bg-blue-500/80 text-white rounded-full hover:bg-blue-500 transition-all duration-200"
+                    className="p-2 bg-blue-500/80 text-white rounded-full hover:bg-blue-600 transition-all duration-200"
                   >
                     <Download className="w-4 h-4" />
                   </button>
@@ -520,7 +522,7 @@ const MediaGallery = ({
                 {mode === "admin" && (
                   <button
                     onClick={(e) => deleteSingleItem(item.name, e)}
-                    className="p-2 bg-red-500/80 text-white rounded-full hover:bg-red-500 transition-all duration-200"
+                    className="p-2 bg-red-500/80 text-white rounded-full hover:bg-red-600 transition-all duration-200"
                   >
                     <X className="w-4 h-4" />
                   </button>

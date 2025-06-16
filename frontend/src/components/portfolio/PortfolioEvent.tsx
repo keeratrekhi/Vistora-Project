@@ -56,10 +56,10 @@ const PortfolioEvent: React.FC<Props> = ({ id }) => {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent ">
             Coming Soon
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
             We’re working on something amazing!
           </p>
         </div>
@@ -68,9 +68,9 @@ const PortfolioEvent: React.FC<Props> = ({ id }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-scree py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-gray-900">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
           Our Work
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -80,7 +80,7 @@ const PortfolioEvent: React.FC<Props> = ({ id }) => {
               className="flex flex-col h-full transform transition-all duration-300 hover:-translate-y-2"
             >
               <a href={evt.publishedUrl}  target="_blank"  rel="noopener noreferrer" className="flex-1 block h-full">
-                <div className="h-full bg-white rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
+                <div className="h-full backdrop-blur-lg rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 overflow-hidden">
                   <div className="p-6">
                     <ImageCard
                       imageURL={evt.coverUrl}

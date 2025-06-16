@@ -22,7 +22,7 @@ export interface CoverDto {
 
 export const getPortfolioURL = async (id : String): Promise<String> => {
   const response = await APIService.get<PortfolioDto>(`${env.VITE_PORTFOLIO_URL}/${id}`);
-  return response.data.portfolioQrCode;
+  return response.data.name;
 };
 
 export const getPortfolio = async (id : String): Promise<PortfolioDto> => {

@@ -49,10 +49,10 @@ const Dashboard = () => {
       if (!currentUser?.id) return;
 
       try {
-        setIsPortfolioURLFetching(true);
-
-        const portfolioUrl = await getPortfolioURL(currentUser.id);
-        setPortfolioURL(portfolioUrl as string);
+         setIsPortfolioURLFetching(true);
+        const slug = await getPortfolioURL(currentUser.id);
+        setPortfolioURL(`${window.location.origin}/portfolio/${slug}`);
+        
       } catch (error) {
         toast.error("Error fetching portfolio URL. Please try again later.");
       } finally {
