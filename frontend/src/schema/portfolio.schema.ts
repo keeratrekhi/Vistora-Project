@@ -2,7 +2,15 @@ import { z } from "zod";
 
 export const portfolioInfoSchema = z.object({
   generalInfo: z.object({
-    name: z.string().min(1, "Name is required"),
+    name:
+     z.string()
+     .min(1, {message : "Name is required"})
+     .regex(/^[a-z0-9-]+$/, {
+        message:
+          "URL can only contain lowercase letters, numbers, and hyphens (no spaces or special characters)",
+      })
+      .transform((val) => val.toLowerCase()),
+
     description: z.string().min(1, "Description is required"),
     contact: z.string().min(1, "Contact is required"),
     email: z.string().email("Invalid email address"),

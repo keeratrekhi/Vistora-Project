@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Upload, Cloud, CheckCircle, AlertCircle, File, X, ChevronDown, ChevronUp } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface FileUploadProps {
   eventId: string;
@@ -37,9 +38,19 @@ const FileUploader: React.FC<FileUploadProps> = ({
   const [isDragOver, setIsDragOver] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+
+
   const totalSizeRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+  const allowedExt = [
+  ".jpg", ".jpeg", ".png", 
+  ".mp4", ".mov", ".mkv", ".avi", ".flv", ".webm",".is",
+  ".txt",
+  ".mp3", ".wav", ".ogg"
+];
 
   // ... keep existing code (formatBytes function, useEffect, and all handler functions)
 
@@ -86,6 +97,26 @@ const FileUploader: React.FC<FileUploadProps> = ({
 
   const handleFileChange = (files: FileList | null) => {
     if (!files) return;
+      for (let i = 0; i < files.length; i++) {
+    const ext = files[i].name.slice(files[i].name.lastIndexOf(".")).toLowerCase();
+    if (!allowedExt.includes(ext)) {
+      toast.error(
+        `“${files[i].name}” is not an allowed file type.\n` +
+        `Allowed extensions: ${allowedExt.join(", ")}`
+      );
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+                 // clear the file input
+      setSelectedFiles(null);
+      setUploadProgress(null);
+      setUploadStatus("");
+      return;
+    }
+  }
+
+
     setSelectedFiles(files);
     setUploadProgress(null);
     setUploadStatus("");
