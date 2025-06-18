@@ -9,6 +9,8 @@ interface EventCoverImageProps {
   onCoverImageChanged: (newUrl: string | null) => void; 
 }
 
+const env=import.meta.env;
+
 const EventCoverImage: React.FC<EventCoverImageProps> = ({
   eventId,
   currentCoverUrl,
@@ -74,7 +76,7 @@ const EventCoverImage: React.FC<EventCoverImageProps> = ({
           const prevFileName = decodeURIComponent(prevUrl.split("/").pop()!);
           try {
             await axios.delete(
-              `http://localhost:3000/s3/mediacover/${eventId}/${prevFileName}`,
+              `${env.VITE_BACKEND_URL}/s3/mediacover/${eventId}/${prevFileName}`,
               { withCredentials: true }
             );
             console.log(`Deleted previous cover: ${prevFileName}`);
@@ -92,7 +94,7 @@ const EventCoverImage: React.FC<EventCoverImageProps> = ({
         const uploadRes = await axios.post<{
           cover: { url: string; name: string; type: string; size: number };
         }>(
-          `http://localhost:3000/s3/uploadcover/${eventId}`,
+          `${env.VITE_BACKEND_URL}/s3/uploadcover/${eventId}`,
           formData,
           {
             headers: { "Content-Type": "multipart/form-data" },

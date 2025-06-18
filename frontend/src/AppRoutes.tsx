@@ -26,12 +26,12 @@ import PortfolioInfo from "./pages/Admin/PortfolioInfo";
 import Portfolio from "./pages/Portfolio";
 import EventShare from "./pages/EventShare";
 import NotFound from "./pages/NotFound";
-import ChunkUploadPage from "./pages/ChunkUploadPage";
 import AdminEventPage from "./pages/Admin/AdminEventPage";
 import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
 import { CreateEvent } from "./pages/Admin/CreateEvent";
 import EventGalleryPage from "./pages/EventGalleryPage";
+import LandingPage from "./pages/LandingPage";
 
 
 interface RouteObject {
@@ -41,6 +41,11 @@ interface RouteObject {
 }
 
 export const NonAuthenticateRoutes: RouteObject[] = [
+  {
+    path:HOME_ROUTE,
+    element:<LandingPage/>,
+    withLayout:false,
+  },
   {
     path: LOGIN_ROUTE,
     element: <Login />,
@@ -103,12 +108,6 @@ export const AuthenticateRoutes: RouteObject[] = [
     path : EVENT_SHARE_ROUTE,
     element : <EventShare />,
     withLayout : false
-  },
-
-  {
-    path : CHUNK_UPLOAD_ROUTE,
-    element : <ChunkUploadPage />,
-    withLayout : true
   },
   {
     path : ADMIN_EVENT_PAGE_ROUTE,

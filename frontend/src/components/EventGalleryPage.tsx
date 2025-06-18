@@ -7,6 +7,8 @@ import PinModal from "@/components/PinModal";
 import { Event } from "@/models/Event";
 import axios from "axios"; // Added axios import
 
+const env=import.meta.env;
+
 const EventGalleryPage = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ const EventGalleryPage = () => {
         try {
           const response = await axios.get<{
             covers: Array<{ url: string; name: string; type: string; size: number }>;
-          }>(`http://localhost:3000/api/events/eventscover/${eventId}`, {
+          }>(`${env.VITE_BACKEND_URL}/api/events/eventscover/${eventId}`, {
             withCredentials: true,
           });
           

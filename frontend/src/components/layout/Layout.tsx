@@ -5,6 +5,8 @@ import Sidebar from "./Sidebar";
 import { useDispatch } from "react-redux";
 import { SignOutSuccess } from "@/redux/user/slice";
 
+const env=import.meta.env;
+
 const Layout: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const navigate = useNavigate();
@@ -16,7 +18,7 @@ const Layout: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:3000/api/auth/signout", {
+      const res = await fetch(`${env.VITE_BACKEND_URL}/api/auth/signout`, {
         method: "POST",
         credentials: "include",
       });

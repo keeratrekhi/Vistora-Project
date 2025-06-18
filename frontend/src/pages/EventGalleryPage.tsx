@@ -9,6 +9,8 @@ import { AccessType } from "@/enums/AccessType";
 import { Calendar, MapPin, Camera, ArrowLeft, Sparkles, Heart, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const env=import.meta.env;
+
 const EventGalleryPage = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -36,7 +38,7 @@ const EventGalleryPage = () => {
           ? setPinVerified(true)
           : setShowPinModal(true);
         const res = await axios.get<{ covers: { url: string }[] }>(
-          `http://localhost:3000/api/events/eventscover/${eventId}`,
+          `${env.VITE_BACKEND_URL}/api/events/eventscover/${eventId}`,
           { withCredentials: true }
         );
         setCoverImageUrl(res.data.covers[0]?.url || data.coverImageUrl || null);

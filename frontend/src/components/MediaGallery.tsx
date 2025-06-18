@@ -38,6 +38,8 @@ const MediaGallery = ({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentViewerIndex, setCurrentViewerIndex] = useState(0);
 
+  const env=import.meta.env;
+
   useEffect(() => {
     const abortController = new AbortController();
     
@@ -48,7 +50,7 @@ const MediaGallery = ({
         setSelectedItems([]);
         
         const response = await axios.get<MediaItem[]>(
-          `http://localhost:3000/api/events/${eventId}`,
+          `${env.VITE_BACKEND_URL}/api/events/${eventId}`,
           {
             withCredentials: true,
             signal: abortController.signal
@@ -125,7 +127,7 @@ const MediaGallery = ({
       setDeleting(true);
       
       await axios.post(
-        `http://localhost:3000/s3/media/bulk-delete/${eventId}`,
+        `${env.VITE_BACKEND_URL}/s3/media/bulk-delete/${eventId}`,
         { fileNames: selectedItems },
         { withCredentials: true }
       );
@@ -154,7 +156,7 @@ const MediaGallery = ({
     
     try {
       setDeleting(true);
-      await axios.delete(`http://localhost:3000/s3/media/${eventId}/${fileName}`, {
+      await axios.delete(`${env.VITE_BACKEND_URL}/s3/media/${eventId}/${fileName}`, {
         withCredentials: true
       });
       
@@ -173,7 +175,7 @@ const MediaGallery = ({
   const handleDownload = async (fileName: string) => {
     try {
       const response = await axios.get(
-        `http://localhost:3000/api/events/download/${eventId}/${fileName}`,
+        `${env.VITE_BACKEND_URL}/api/events/download/${eventId}/${fileName}`,
         {
           responseType: 'blob',
           withCredentials: true
@@ -200,7 +202,7 @@ const MediaGallery = ({
       setDownloading(true);
       
       const response = await axios.post(
-        `http://localhost:3000/api/events/download-multiple-zip/${eventId}`,
+        `${env.VITE_BACKEND_URL}/api/events/download-multiple-zip/${eventId}`,
         { fileNames: selectedItems },
         {
           responseType: 'blob',

@@ -20,6 +20,8 @@ interface UploadProgress {
   percentage: number;
 }
 
+const env=import.meta.env;
+
 const FileUploader: React.FC<FileUploadProps> = ({
   eventId,
   onUploadSuccess,
@@ -69,7 +71,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
     const fetchStorage = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3000/api/storage/user/storage?eventId=${eventId}`,
+          `${env.VITE_BACKEND_URL}/api/storage/user/storage?eventId=${eventId}`,
           { withCredentials: true }
         );
         if (
@@ -216,7 +218,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
 
     try {
       const resp = await axios.post(
-        "http://localhost:3000/s3/upload",
+        `${env.VITE_BACKEND_URL}/s3/upload`,
         formData,
         { withCredentials: true }
       );

@@ -9,6 +9,9 @@ import EventCard from "@/components/EventCard";
 import NoEventsIllustration from "@/assets/illustrations/NoEventsIllustration";
 import toast from "react-hot-toast";
 
+
+const env=import.meta.env;
+
 const AdminEventsPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -59,7 +62,7 @@ const AdminEventsPage: React.FC = () => {
         setIsDeletingEvent(true);
         // Delete entire event folder (media + cover)
         await axios.delete(
-          `http://localhost:3000/s3/media/event/${eventToDelete}`,
+          `${env.VITE_BACKEND_URL}/s3/media/event/${eventToDelete}`,
           {
             withCredentials: true,
           }

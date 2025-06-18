@@ -90,6 +90,6 @@ export const fetchCoverImage = async (userId : string, portfolioName: string): P
 }
 
 export const deleteCoverImage = async (userId : string, coverImage : string, portfolioName : string) : Promise<void> => {
-    await APIService.delete(`http://localhost:3000/s3/portfoliocover/${encodeURIComponent(portfolioName)}/${encodeURIComponent(coverImage)}?userId=${encodeURIComponent(userId)}`);
+    await APIService.delete(`${env.VITE_BACKEND_URL}/s3/portfoliocover/${encodeURIComponent(portfolioName)}/${encodeURIComponent(coverImage)}?userId=${encodeURIComponent(userId)}`);
     return;
 }
