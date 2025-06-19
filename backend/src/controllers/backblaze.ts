@@ -480,7 +480,7 @@ export const GetMedia = async (req: Request, res: Response) => {
 
     const mediaUrls = await Promise.all(
       rootFiles.map(async (file) => {
-        const url = await getSignedUrl(
+        const signed = await getSignedUrl(
           s3client,
           new GetObjectCommand({
             Bucket: process.env.BUCKET_NAME!,
@@ -488,9 +488,10 @@ export const GetMedia = async (req: Request, res: Response) => {
           }),
           { expiresIn: 3600 }
         );
+     
 
         return {
-          url,
+          url: `${process.env.CLOUDFLARE_CACHE}/proxy?url=${encodeURIComponent(signed)}`,
           name: file.Key!.split("/").pop(),          // Filename only
           type: getFileType(file.Key!),               // File type detection
           size: file.Size
@@ -1031,7 +1032,7 @@ export async function listCoverFiles(eventId: string): Promise<
       );
 
       return {
-        url: signed,
+        url: `${process.env.CLOUDFLARE_CACHE}/proxy?url=${encodeURIComponent(signed)}`,
         name: file.Key!.split("/").pop()!,
         type: getcoverFileType(file.Key!),
         size: file.Size ?? 0,
@@ -1292,7 +1293,7 @@ export async function listPortfolioCoverFiles(
         { expiresIn: 3600 }
       );
       return {
-        url: signed,
+        url: `${process.env.CLOUDFLARE_CACHE}/proxy?url=${encodeURIComponent(signed)}`,
         name: file.Key!.split("/").pop()!,
         type: getFileType(file.Key!),
         size: file.Size ?? 0,
