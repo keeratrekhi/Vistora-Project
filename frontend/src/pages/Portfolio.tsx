@@ -221,7 +221,7 @@ const Portfolio: React.FC = () => {
 
             {/* Title with enhanced typography */}
             <h1 className="text-6xl md:text-8xl font-bold mb-8 bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent animate-slide-in-left">
-              {portfolioInfo.name}
+              {portfolioInfo.studioName}
             </h1>
 
             {/* Subtitle with staggered animation */}

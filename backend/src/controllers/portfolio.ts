@@ -25,6 +25,7 @@ export const CreatePortfolio: RequestHandler = async (
     // 2. Required fields check
     if (
       !generalInfo.name ||
+      !generalInfo.studioName ||
       !generalInfo.contact ||
       !generalInfo.email ||
       !generalInfo.description
@@ -70,6 +71,7 @@ export const CreatePortfolio: RequestHandler = async (
         data: {
           portfolioQrCode: `${process.env.PORTFOLIO_DOMAIN}/portfolio/${trimmedName}`,
           name: trimmedName,
+          studioName: generalInfo.studioName,
           contact: generalInfo.contact,
           email: generalInfo.email,
           description: generalInfo.description,
@@ -96,6 +98,7 @@ export const CreatePortfolio: RequestHandler = async (
       data: {
         portfolioQrCode: `${domain}/portfolio/${trimmedName}`,
         name: trimmedName,
+        studioName: generalInfo.studioName,
         contact: generalInfo.contact,
         email: generalInfo.email,
         description: generalInfo.description,

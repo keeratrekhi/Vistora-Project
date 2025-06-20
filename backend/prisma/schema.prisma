@@ -35,6 +35,7 @@ model UserPortfolio {
   portfolioQrCode String
   //add unique route name which represents the brand
   name          String  @unique
+  studioName    String?
   description   String?
   contact       String?
   email         String?

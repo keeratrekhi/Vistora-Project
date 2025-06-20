@@ -83,6 +83,7 @@ const PortfolioInfo: React.FC = () => {
     defaultValues: {
       generalInfo: {
         name: "",
+        studioName:"",
         description: "",
         contact: "",
         email: "",
@@ -157,6 +158,7 @@ const PortfolioInfo: React.FC = () => {
     reset({
       generalInfo: {
         name: portfolioInfo?.name || "",
+        studioName:portfolioInfo?.studioName|| "",
         description: portfolioInfo?.description || "",
         contact: portfolioInfo?.contact || "",
         email: portfolioInfo?.email || "",
@@ -316,8 +318,12 @@ const PortfolioInfo: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                   <div>
-                    <h4 className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">Name</h4>
+                    <h4 className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">Unique Portfolio Url</h4>
                     <p className="text-xl text-white font-semibold">{portfolioInfo.name}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">Studio Name</h4>
+                    <p className="text-xl text-white font-semibold">{portfolioInfo.studioName}</p>
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">Description</h4>
@@ -506,10 +512,10 @@ const PortfolioInfo: React.FC = () => {
               <div className="space-y-6">
                 <div className="animate-fade-in" style={{animationDelay: '0.4s'}}>
                   <FormInput
-                    label="Studio Name"
+                    label="Unique Portfolio Name"
                     type="text"
                     name="generalInfo.name"
-                    placeholder="Enter your studio name"
+                    placeholder="Enter a unique url route"
                     register={register}
                     error={errors.generalInfo?.name}
                     className={`w-full px-4 py-3 bg-slate-700/50 border rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
@@ -517,6 +523,22 @@ const PortfolioInfo: React.FC = () => {
                     }`}
                   />
                 </div>
+
+
+                      <div className="animate-fade-in" style={{animationDelay: '0.4s'}}>
+                  <FormInput
+                    label="Studio Name"
+                    type="text"
+                    name="generalInfo.studioName"
+                    placeholder="Enter your studio name"
+                    register={register}
+                    error={errors.generalInfo?.studioName}
+                    className={`w-full px-4 py-3 bg-slate-700/50 border rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 ${
+                      errors.generalInfo?.name ? "border-red-500 animate-shake" : "border-slate-600"
+                    }`}
+                  />
+                </div>
+
 
                 <div className="animate-fade-in" style={{animationDelay: '0.5s'}}>
                   <label className="block text-slate-300 font-medium mb-2">Description</label>

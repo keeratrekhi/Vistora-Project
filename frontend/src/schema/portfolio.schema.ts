@@ -10,7 +10,7 @@ export const portfolioInfoSchema = z.object({
           "URL can only contain lowercase letters, numbers, and hyphens (no spaces or special characters)",
       })
       .transform((val) => val.toLowerCase()),
-
+    studioName: z.string().min(1, "Studio Name is required"),
     description: z.string().min(1, "Description is required"),
     contact: z.string().min(1, "Contact is required"),
     email: z.string().email("Invalid email address"),

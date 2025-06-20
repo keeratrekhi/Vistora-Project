@@ -25,6 +25,7 @@ export interface SocialLink {
 
 export interface GeneralInfo {
   name: string;
+  studioName: string;
   description?: string;
   contact?: string;
   email?: string;
@@ -43,6 +44,7 @@ export interface PortfolioDto{
   id? : string;
   portfolioQrCode? : string;
   name? : string;
+  studioName?:string;
   description? : string;
   contact? : string;
   email? : string;
