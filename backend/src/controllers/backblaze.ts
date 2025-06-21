@@ -1,6 +1,8 @@
 import B2 from "backblaze-b2";
 import * as fs from "fs";
+import fsw from 'fs/promises';
 import * as path from "path";
+import os from 'os';
 import dotenv from "dotenv";
 import { Request, RequestHandler, Response } from "express";
 import formidable, { File as FormidableFile } from "formidable";
@@ -19,9 +21,84 @@ import JSZip from "jszip";
 import { Readable } from "stream";
 import archiver from "archiver";
 import axios from "axios";
+import sharp from 'sharp';
+
+
 
 
 dotenv.config();
+
+
+
+
+export async function fetchAdminLogoBuffer(eventId: string): Promise<Buffer> {
+  const prefix = `events/${eventId}/logo/`;
+  console.log(`▶️ Listing B2 objects under "${prefix}"`);
+  const list = await s3client.send(
+    new ListObjectsV2Command({ Bucket: process.env.BUCKET_NAME!, Prefix: prefix })
+  );
+  const key = list.Contents?.[0]?.Key;
+  console.log("   → Found key:", key);
+  if (!key) {
+    throw new Error(`No logo file found under "${prefix}"`);
+  }
+
+  const cmd = new GetObjectCommand({ Bucket: process.env.BUCKET_NAME!, Key: key });
+  const url = await getSignedUrl(s3client, cmd, { expiresIn: 300 });
+  console.log("   → Signed URL for download:", url.slice(0, 60), "…");
+
+  const resp = await axios.get<ArrayBuffer>(url, { responseType: "arraybuffer" });
+  console.log("   → Fetched logo bytes:", resp.data.byteLength);
+  return Buffer.from(resp.data);
+}
+
+
+
+
+
+async function watermarkImage(
+  srcPath: string,
+  dstPath: string,
+  eventId: string
+): Promise<string> {
+  let logoBuffer: Buffer;
+  try {
+    logoBuffer = await fetchAdminLogoBuffer(eventId);
+  } catch (err) {
+    console.error("❌ Unable to fetch admin logo:", err);
+    throw err;
+  }
+
+  // Now composite
+  const img = sharp(srcPath);
+  const { width, height } = await img.metadata();
+  console.log("   → Source dimensions:", width, "x", height);
+  if (!width || !height) {
+    throw new Error("Could not get image dimensions");
+  }
+
+  const logoSize = Math.round(width * 0.15);
+  const resizedLogo = await sharp(logoBuffer).resize(logoSize).toBuffer();
+  console.log("   → Resized logo to", logoSize, "px");
+
+  const margin = 20;
+  const composited = await img
+    .composite([{ input: resizedLogo, blend: "over",
+                  left: width - logoSize - margin,
+                  top: height - logoSize - margin }])
+    .toBuffer();
+
+  console.log("   → Writing composited buffer (", composited.length, "bytes ) to", dstPath);
+  await fsw.writeFile(dstPath, composited);
+
+  return dstPath;
+}
+
+
+
+
+
+
 
 
 // Promisify stream pipeline and other functions
@@ -258,6 +335,8 @@ async function uploadLargeFile(filePath: string, remoteFileName: string) {
 
 
 
+
+
 export default async function UploadHandler(req: Request, res: Response) : Promise<void> {
   if (req.method !== "POST") {
      res.status(405).json({ message: "Method not allowed" });
@@ -431,6 +510,210 @@ export default async function UploadHandler(req: Request, res: Response) : Promi
      return ;
   }
 }
+
+
+
+
+
+
+
+
+
+
+export async function UploadHandlerwithLogo(
+  req: Request,
+  res: Response
+): Promise<void> {
+  if (req.method !== "POST") {
+    res.status(405).json({ message: "Method not allowed" });
+    return;
+  }
+
+  // grab it once, and only from params
+  const eventId = req.params.eventId;
+  if (!eventId) {
+    res.status(400).json({ message: "Missing eventId in URL" });
+    return;
+  }
+
+  try {
+    const form = formidable({
+      multiples: true,
+      keepExtensions: true,
+      maxFileSize: MAX_FILE_SIZE,
+      filter: (part) => {
+        return (
+          part.mimetype?.startsWith("image/") ||
+          part.mimetype?.startsWith("video/") ||
+          part.mimetype?.startsWith("audio/") ||
+          part.mimetype === "text/plain"
+        );
+      },
+    });
+
+    const { fields, files } = await new Promise<{ 
+      fields: formidable.Fields; 
+      files: formidable.Files 
+    }>((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        else resolve({ fields, files });
+      });
+    });
+
+    console.log("Fields received:", fields);
+    console.log("Files received:", files);
+
+    // Convert files to an array
+    const fileArray = Array.isArray(files.file) 
+      ? files.file 
+      : files.file 
+        ? [files.file] 
+        : [];
+
+    if (!fileArray.length) {
+       res.status(400).json({ message: "No files uploaded" });
+       return ;
+    }
+
+    const eventId = Array.isArray(fields.eventId) 
+      ? fields.eventId[0] 
+      : fields.eventId;
+
+    if (!eventId || typeof eventId !== "string") {
+      res.status(400).json({ message: "Invalid or missing Event ID" });
+       return ;
+    }
+
+    // Validate event and user
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { userId: true }
+    });
+    if (!event) {
+      res.status(404).json({ message: "Event not found" });
+       return ;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: event.userId },
+      select: { storageUsed: true, totalStorageAllowed: true }
+    });
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+       return ;
+    }
+
+    // Calculate total size of all files
+    let totalSize = 0n;
+    const tempFiles: string[] = [];
+    
+    try {
+      for (const file of fileArray) {
+        if (file.filepath) {
+          const stats = fs.statSync(file.filepath, { bigint: true });
+          totalSize += stats.size;
+          tempFiles.push(file.filepath); // Track temp files for cleanup
+        }
+      }
+
+      const storageUsed = BigInt(user.storageUsed);
+      const totalStorageAllowed = BigInt(user.totalStorageAllowed);
+      const remainingSpace = totalStorageAllowed - storageUsed;
+
+      if (totalSize > remainingSpace) {
+        res.status(400).json({
+          message: `Storage limit exceeded. Remaining space: ${formatBytes(remainingSpace)}`
+        });
+         return ;
+      }
+
+      // Upload each file to Backblaze B2
+      const uploadResults: string[] = [];
+      for (const file of fileArray) {
+        if (file.filepath) {
+          try {
+            const ext = path.extname(file.filepath);
+             const tempStamped = path.join(
+           os.tmpdir(),
+              `${path.basename(file.filepath, ext)}.watermarked${ext}`
+                );
+
+            // 2) run watermark step
+         await watermarkImage(file.filepath, tempStamped,eventId);
+
+          await uploadToB2(tempStamped, eventId, file.originalFilename);
+
+            uploadResults.push(file.originalFilename || path.basename(file.filepath));
+          } catch (uploadError : any) {
+            console.error("❌ File upload failed:", {
+              file: file.originalFilename,
+              error: uploadError.message
+            });
+            throw new Error(`Failed to upload ${file.originalFilename}: ${uploadError.message}`);
+          }
+        }
+      }
+
+      // Update user storage
+      await prisma.user.update({
+        where: { id: event.userId },
+        data: { storageUsed: { increment: totalSize } },
+      });
+
+      res.status(200).json({
+        message: "Files uploaded successfully",
+        files: uploadResults,
+        storageUsed: (storageUsed + totalSize).toString(),
+        totalStorage: totalStorageAllowed.toString(),
+      });
+       return ;
+
+    } catch (error : any) {
+      console.error("❌ Upload Processing Error:", {
+        message: error.message,
+        stack: error.stack,
+        eventId,
+        userId: event.userId
+      });
+      
+      res.status(500).json({
+        message: "Upload processing failed",
+        error: process.env.NODE_ENV === "development" 
+          ? error.message 
+          : "Internal server error",
+      });
+       return ;
+    } finally {
+      // Clean up temp files whether upload succeeded or failed
+      for (const filePath of tempFiles) {
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log(`🧹 Deleted temp file: ${filePath}`);
+          }
+        } catch (cleanupError : any) {
+          console.error("❌ Temp file cleanup failed:", cleanupError.message);
+        }
+      }
+    }
+
+  } catch (error : any) {
+    console.error("❌ Form Parsing Error:", {
+      message: error.message,
+      stack: error.stack
+    });
+
+    res.status(500).json({
+      message: "Form parsing failed",
+      error: process.env.NODE_ENV === "development" 
+        ? error.message 
+        : "Internal server error",
+    });
+     return ;
+  }
+}
+
 
 
 
@@ -1627,4 +1910,311 @@ export async function getBulkDownloadUrlsHandler(req: Request, res: Response) {
     console.error("Bulk URL generation error:", error.message);
     res.status(500).json({ message: "Failed to generate download URLs" });
   }
+}
+
+
+
+
+
+
+
+
+
+
+//Logo Functions
+export async function deleteAlllogoFiles(eventId: string): Promise<bigint> {
+  await b2.authorize();
+  const prefix = `events/${eventId}/logo/`;
+  let continuationToken: string | undefined;
+  let totalFreed = 0n;
+
+  do {
+    const listResult = await s3client.send(new ListObjectsV2Command({
+      Bucket: process.env.BUCKET_NAME!,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    }));
+
+    if (!listResult.Contents?.length) break;
+
+    for (const obj of listResult.Contents) {
+      if (!obj.Key) continue;
+      const fileName = obj.Key.split("/").pop()!;
+      try {
+        totalFreed += await deleteSinglelogoFile(eventId, fileName);
+        console.log(`Deleted ${obj.Key}`);
+      } catch (e) {
+        console.warn(`Failed to delete ${obj.Key}:`, e);
+      }
+    }
+
+    continuationToken = listResult.IsTruncated
+      ? listResult.NextContinuationToken
+      : undefined;
+  } while (continuationToken);
+
+  return totalFreed;
+}
+
+
+export async function deleteSinglelogoFile(
+  eventId: string,
+  fileName: string
+): Promise<bigint> {
+  const fullKey = `events/${eventId}/logo/${fileName}`;
+  const fileInfo = await getFileInfoByFileName(fullKey);
+  if (!fileInfo) throw new Error("File not found");
+  await b2.deleteFileVersion({
+    fileId: fileInfo.fileId,
+    fileName: fullKey,
+  });
+  return BigInt(fileInfo.contentLength);
+}
+
+
+
+
+
+
+export async function listlogoFiles(eventId: string): Promise<
+  Array<{ url: string; name: string; type: string; size: number }>
+> {
+  const prefix = `events/${eventId}/logo/`;
+
+  const listResult = await s3client.send(
+    new ListObjectsV2Command({
+      Bucket: process.env.BUCKET_NAME!,
+      Prefix: prefix,
+    })
+  );
+
+  if (!listResult.Contents || listResult.Contents.length === 0) {
+    return [];
+  }
+
+  const mediaUrls = await Promise.all(
+    listResult.Contents.map(async (file) => {
+      const signed = await getSignedUrl(
+        s3client,
+        new GetObjectCommand({
+          Bucket: process.env.BUCKET_NAME!,
+          Key: file.Key!,
+        }),
+        { expiresIn: 3600 }
+      );
+
+      return {
+        url: `${process.env.CLOUDFLARE_CACHE}/proxy?url=${encodeURIComponent(signed)}`,
+        name: file.Key!.split("/").pop()!,
+        type: getlogoType(file.Key!),
+        size: file.Size ?? 0,
+      };
+    })
+  );
+
+  return mediaUrls;
+}
+
+
+
+
+function getlogoType(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  if (!ext) return "other";
+  const imageExt = ["jpg", "jpeg", "png", "gif", "webp", "bmp"];
+  const videoExt = ["mp4", "mov", "webm", "mkv", "avi", "flv", "wmv", "m4v", "is"];
+  if (imageExt.includes(ext)) return "image";
+  if (videoExt.includes(ext)) return "video";
+  return "other";
+}
+
+
+
+export async function uploadlogoController(req: Request, res: Response) {
+  const eventId = req.params.eventId;
+
+  //Validate event exists
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { userId: true },
+  });
+  if (!event) {
+    res.status(404).json({ error: "Event not found" });
+    return;
+  }
+
+  try {
+    //Parse multipart form (single file under field “file”)
+    const form = formidable({
+      multiples: false,
+      keepExtensions: true,
+      maxFileSize: MAX_FILE_SIZE,
+      filter: (part) =>
+        part.mimetype?.startsWith("image/") ||
+        part.mimetype?.startsWith("video/") ||
+        part.mimetype?.startsWith("audio/") ||
+        part.mimetype === "text/plain",
+    });
+
+    const { files } = await new Promise<{
+      fields: formidable.Fields;
+      files: formidable.Files;
+    }>((resolve, reject) => {
+      form.parse(req, (err, fields, files) => {
+        if (err) reject(err);
+        else resolve({ fields, files });
+      });
+    });
+
+    //Ensure exactly one file under “file”
+    const fileField = files.file;
+    if (!fileField) {
+      res.status(400).json({ error: "No file uploaded" });
+      return;
+    }
+    const fileArray = Array.isArray(fileField) ? fileField : [fileField];
+    if (fileArray.length !== 1) {
+      res
+        .status(400)
+        .json({ error: "Please upload exactly one logo file" });
+      return;
+      }
+    const fileObj = fileArray[0] as formidable.File;
+    if (!fileObj.filepath) {
+      res.status(400).json({ error: "Invalid file upload" });
+      return; 
+    }
+
+    //Delete any existing cover(s)
+    try {
+      await deleteAlllogoFiles(eventId);
+    } catch (delErr) {
+      console.warn(
+        `⚠️  Could not delete old logo for event ${eventId}:`,
+        (delErr as any).message
+      );
+      //We proceed even if deletion “fails” (folder may have been empty).
+    }
+
+    // Upload the new one into Backblaze B2 (under events/${eventId}/cover/)
+    const originalName =
+      (fileObj.originalFilename as string) || path.basename(fileObj.filepath);
+    await uploadlogoToB2(fileObj.filepath, eventId, originalName);
+
+    //  Clean up the temp file from formidable
+    try {
+      if (fs.existsSync(fileObj.filepath)) {
+        fs.unlinkSync(fileObj.filepath);
+      }
+    } catch (cleanupErr) {
+      console.warn(
+        "⚠️  Could not delete temp upload:",
+        (cleanupErr as any).message
+      );
+    }
+
+    //  List whatever is under /cover/ and return it
+    const logos = await listlogoFiles(eventId);
+    if (logos.length === 0) {
+      // Should not happen immediately after a successful upload
+      res
+        .status(500)
+        .json({ error: "Upload succeeded but no cover found" });
+        return;
+    }
+
+    // Since we always deleted first, there should now be exactly one.
+    res.status(200).json({ cover: logos[0] });
+    return;
+  } catch (err: any) {
+    console.error("❌ uploadCoverController error:", err);
+    res
+      .status(500)
+      .json({ error: err.message || "Failed to upload cover" });
+    return;
+    }
+}
+
+
+
+export async function getlogoController(req: Request, res: Response) {
+  const eventId = req.params.eventId;
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true },
+  });
+  if (!event) {
+    res.status(404).json({ error: "Event not found" });
+    return;
+  }
+
+  try {
+    const covers = await listlogoFiles(eventId);
+    res.status(200).json({ covers }); // covers is an array of length 0 or 1
+    return;
+  } catch (err: any) {
+    console.error("❌ getlogoController error:", err);
+    res
+      .status(500)
+      .json({ error: err.message || "Failed to list logo files" });
+      return;
+  }
+}
+
+
+export async function deletelogoController(req: Request, res: Response) {
+  const eventId = req.params.eventId;
+
+
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { id: true },
+  });
+  if (!event) {
+    res.status(404).json({ error: "Event not found" });
+    return;
+  }
+
+  try {
+    const freedSize = await deleteAlllogoFiles(eventId);
+    return res.status(200).json({
+      message: "logo deleted",
+      bytesFreed: freedSize.toString(),
+    });
+  } catch (err: any) {
+    console.error("❌ deletelogoController error:", err);
+    res
+      .status(500)
+      .json({ error: err.message || "Failed to delete logo files" });
+      return;
+  }
+}
+
+
+
+export async function uploadlogoToB2(
+  filePath: string,
+  eventId: string,
+  originalFilename: string | null
+): Promise<void> {
+  const ext = path.extname(filePath).toLowerCase();
+  // … your allowed-ext + size checks here …
+
+  const fileName = originalFilename ?? path.basename(filePath);
+  const remoteKey = `events/${eventId}/logo/${fileName}`;
+
+  await b2.authorize();
+  const { data: { uploadUrl, authorizationToken } } = await b2.getUploadUrl({
+    bucketId: process.env.B2_BUCKET_ID!,
+  });
+
+  const buffer = await fs.promises.readFile(filePath);
+  await b2.uploadFile({
+    uploadUrl,
+    uploadAuthToken: authorizationToken,
+    fileName: remoteKey,
+    data: buffer,
+  });
+  console.log(`Uploaded logo to ${remoteKey}`);
 }

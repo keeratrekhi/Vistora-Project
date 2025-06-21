@@ -1,14 +1,22 @@
 import express, { RequestHandler } from "express";
-import UploadHandler, { bulkDeleteFiles,  deleteCoverController, deleteEvent, deleteFile, deletePortfolioCoverController, downloadMultipleFilesHandler, downloadSingleFileHandler, getBulkDownloadUrlsHandler, getCoverController, GetMedia, getPortfolioCoverController, uploadCoverController, uploadPortfolioCoverController} from "../controllers/backblaze";
+import UploadHandler, { bulkDeleteFiles,  deleteCoverController, deleteEvent, deleteFile, deletelogoController, deletePortfolioCoverController, downloadMultipleFilesHandler, downloadSingleFileHandler, getBulkDownloadUrlsHandler, getCoverController, getlogoController, GetMedia, getPortfolioCoverController, uploadCoverController, UploadHandlerwithLogo, uploadlogoController, uploadPortfolioCoverController} from "../controllers/backblaze";
 
 
 const router = express.Router();
 
 router.post("/upload", UploadHandler as RequestHandler);
+router.post("/logoimageupload/:eventId", UploadHandlerwithLogo as RequestHandler);
 // router.get("/events/:eventId", GetMedia as RequestHandler); this route is now public
 
-//Cover image routes
 
+router.post("/uploadlogo/:eventId", uploadlogoController as RequestHandler);
+router.get("/logo/:eventId", getlogoController as RequestHandler);
+router.delete("/deletelogo/:eventId/:fileName", deletelogoController as RequestHandler);
+
+
+
+
+//Cover image routes
 router.post("/uploadcover/:eventId", uploadCoverController as RequestHandler);
 // router.get("/eventscover/:eventId", getCoverController as RequestHandler); this route is now public
 router.delete("/mediacover/:eventId/:fileName", deleteCoverController as RequestHandler);
