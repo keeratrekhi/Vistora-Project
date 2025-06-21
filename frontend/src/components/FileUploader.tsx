@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Upload, Cloud, CheckCircle, AlertCircle, File, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, Cloud, CheckCircle, AlertCircle, File, X, ChevronDown, ChevronUp, Image } from "lucide-react";
 import toast from "react-hot-toast";
+import { fetchlogoImage } from "@/services/DashboardService";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "./ui/button";
+import LoadingSpinner from "./ui/loading-spinner";
+
 
 interface FileUploadProps {
   eventId: string;
@@ -20,42 +25,56 @@ interface UploadProgress {
   percentage: number;
 }
 
-const env=import.meta.env;
+interface logoFile {
+  url: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
+const env = import.meta.env;
 
 const FileUploader: React.FC<FileUploadProps> = ({
   eventId,
   onUploadSuccess,
   refreshKey,
 }) => {
+  // State declarations
   const [storage, setStorage] = useState<StorageStatus>({
     used: 0n,
-    total: BigInt(10 * 1024 ** 3), // 10 GB default
+    total: BigInt(10 * 1024 ** 3),
   });
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>("");
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(
-    null
-  );
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-
-
-
+  const [fetchinglogoImage, setFetchinglogoImage] = useState<boolean>(false);
+  const [uploadinglogoImage, setUploadinglogoImage] = useState<boolean>(false);
+  const [logoImage, setlogoImage] = useState<logoFile | null>(null);
+  const [applyLogo, setApplyLogo] = useState(()=>{
+    const saved = localStorage.getItem('applyLogo');
+    return saved==='true';
+  })
+  const [showAllowed, setShowAllowed] = useState(false);
+  const toggleAllowed = () => setShowAllowed((prev) => !prev);
+  
+  // Refs
   const totalSizeRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const dropzoneRef = useRef<HTMLDivElement>(null);
 
   const allowedExt = [
-  ".jpg", ".jpeg", ".png", 
-  ".mp4", ".mov", ".mkv", ".avi", ".flv", ".webm",".is",
-  ".txt",
-  ".mp3", ".wav", ".ogg"
-];
+    ".jpg", ".jpeg", ".png", 
+    ".mp4", ".mov", ".mkv", ".avi", ".flv", ".webm", ".is",
+    ".txt",
+    ".mp3", ".wav", ".ogg"
+  ];
 
-  // ... keep existing code (formatBytes function, useEffect, and all handler functions)
-
+  // Format bytes utility function
   const formatBytes = (bytes: bigint) => {
     const units = ["B", "KB", "MB", "GB", "TB"];
     let size = Number(bytes);
@@ -67,6 +86,17 @@ const FileUploader: React.FC<FileUploadProps> = ({
     return `${size.toFixed(2)} ${units[unit]}`;
   };
 
+
+
+    useEffect(()=>{
+      localStorage.setItem('applyLogo',String(applyLogo));
+
+    },[applyLogo])
+
+
+
+
+  // Fetch storage data
   useEffect(() => {
     const fetchStorage = async () => {
       try {
@@ -97,38 +127,61 @@ const FileUploader: React.FC<FileUploadProps> = ({
     fetchStorage();
   }, [eventId, refreshKey]);
 
+  // Fetch logo image
+  useEffect(() => {
+    const fetchlogo = async (eventId: string) => {
+      if (!eventId) {
+        setlogoImage(null);
+        return;
+      }
+      try {
+        setFetchinglogoImage(true);
+        const response: any = await fetchlogoImage(eventId);
+        const covers: logoFile[] = response.covers;
+        setlogoImage(covers.length > 0 ? covers[0] : null);
+      } catch (err) {
+        toast.error("Error fetching logo image. Please try again later.");
+        setlogoImage(null);
+      } finally {
+        setFetchinglogoImage(false);
+      }
+    };
+
+    fetchlogo(eventId);
+  }, [eventId, refreshKey]);
+
+  // Handle file selection
   const handleFileChange = (files: FileList | null) => {
     if (!files) return;
-      for (let i = 0; i < files.length; i++) {
-    const ext = files[i].name.slice(files[i].name.lastIndexOf(".")).toLowerCase();
-    if (!allowedExt.includes(ext)) {
-      toast.error(
-        `“${files[i].name}” is not an allowed file type.\n` +
-        `Allowed extensions: ${allowedExt.join(", ")}`
-      );
+    
+    for (let i = 0; i < files.length; i++) {
+      const ext = files[i].name.slice(files[i].name.lastIndexOf(".")).toLowerCase();
+      if (!allowedExt.includes(ext)) {
+        toast.error(
+          `“${files[i].name}” is not an allowed file type.\n` +
+          `Allowed extensions: ${allowedExt.join(", ")}`
+        );
 
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        setSelectedFiles(null);
+        setUploadProgress(null);
+        setUploadStatus("");
+        return;
       }
-                 // clear the file input
-      setSelectedFiles(null);
-      setUploadProgress(null);
-      setUploadStatus("");
-      return;
     }
-  }
-
 
     setSelectedFiles(files);
     setUploadProgress(null);
     setUploadStatus("");
-
-    const total = Array.from(files).reduce((sum, f) => sum + f.size, 0);
-    totalSizeRef.current = total;
+    totalSizeRef.current = Array.from(files).reduce((sum, f) => sum + f.size, 0);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleFileChange(e.target.files);
+  // Drag handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -138,7 +191,10 @@ const FileUploader: React.FC<FileUploadProps> = ({
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(false);
+    if (dropzoneRef.current && 
+        !dropzoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -147,6 +203,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
     handleFileChange(e.dataTransfer.files);
   };
 
+  // File management
   const removeFile = (index: number) => {
     if (!selectedFiles) return;
     const dt = new DataTransfer();
@@ -156,6 +213,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
     setSelectedFiles(dt.files.length > 0 ? dt.files : null);
   };
 
+  // Upload progress simulation
   const getEstimatedSpeedBps = () => {
     const nav = (navigator as any).connection;
     if (nav && nav.downlink) {
@@ -194,10 +252,13 @@ const FileUploader: React.FC<FileUploadProps> = ({
   };
 
   const stopFakeProgress = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = null;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   };
 
+  // Upload handlers
   const handleUpload = async () => {
     if (!eventId) {
       setUploadStatus("⚠️ Please create an event first");
@@ -224,9 +285,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
       );
 
       stopFakeProgress();
-      setUploadProgress((p) =>
-        p ? { ...p, loaded: p.total, percentage: 100 } : p
-      );
+      setUploadProgress((p) => p ? { ...p, loaded: p.total, percentage: 100 } : p);
       setStorage({
         used: BigInt(resp.data.storageUsed),
         total: BigInt(resp.data.totalStorage),
@@ -243,7 +302,94 @@ const FileUploader: React.FC<FileUploadProps> = ({
     }
   };
 
-  const storagePercentage = storage.total === 0n ? 0 : Math.min(Number((storage.used * 100n) / storage.total), 100);
+  const handleUploadwithlogo = async () => {
+    if (!eventId) {
+      setUploadStatus("⚠️ Please create an event first");
+      return;
+    }
+    if (!selectedFiles) {
+      setUploadStatus("No files selected");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStatus("Uploading…");
+    startFakeProgress();
+
+    const formData = new FormData();
+    Array.from(selectedFiles).forEach((f) => formData.append("file", f));
+    formData.append("eventId", eventId);
+
+    try {
+      const resp = await axios.post(
+        `${env.VITE_BUCKET_URL}/logoimageupload/${eventId}`,
+        formData,
+        { withCredentials: true }
+      );
+
+      stopFakeProgress();
+      setUploadProgress((p) => p ? { ...p, loaded: p.total, percentage: 100 } : p);
+      setStorage({
+        used: BigInt(resp.data.storageUsed),
+        total: BigInt(resp.data.totalStorage),
+      });
+      setUploadStatus("✅ Files uploaded successfully!");
+      setSelectedFiles(null);
+      if (onUploadSuccess) onUploadSuccess();
+    } catch (err) {
+      stopFakeProgress();
+      setUploadStatus("❌ Upload failed");
+      console.error(err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUploadLogo = async () => {
+    if (!logoInputRef.current?.files?.length) {
+      toast.error("Select a file first");
+      return;
+    }
+    
+    const form = new FormData();
+    form.append("file", logoInputRef.current.files[0]);
+
+    setUploadinglogoImage(true);
+    try {
+      await axios.post(
+        `${env.VITE_BUCKET_URL}/uploadlogo/${encodeURIComponent(eventId)}`,
+        form,
+        { withCredentials: true }
+      );
+      toast.success("Logo uploaded successfully!");
+    } catch {
+      toast.error("Logo upload failed");
+    } finally {
+      setUploadinglogoImage(false);
+    }
+  };
+
+  const handleDeleteLogo = async (fileName: string) => {
+    if (!confirm("Are you sure you want to delete this logo?")) return;
+
+    setUploadinglogoImage(true);
+    try {
+      await axios.delete(
+        `${env.VITE_BUCKET_URL}/deletelogo/${encodeURIComponent(eventId)}/${encodeURIComponent(fileName)}`,
+        { withCredentials: true }
+      );
+      toast.success("Logo deleted");
+      setlogoImage(null);
+    } catch {
+      toast.error("Failed to delete logo");
+    } finally {
+      setUploadinglogoImage(false);
+    }
+  };
+
+  // Calculate storage percentage
+  const storagePercentage = storage.total === 0n ? 0 : 
+    Math.min(Number((storage.used * 100n) / storage.total), 100);
 
   return (
     <div className="bg-gradient-to-br from-slate-900 via-black to-slate-800 backdrop-blur-xl rounded-2xl border border-slate-600/50 animate-fade-in hover:shadow-lg transition-all duration-300">
@@ -307,16 +453,142 @@ const FileUploader: React.FC<FileUploadProps> = ({
             </p>
           </div>
 
+                <div className="mb-4">
+                <button
+                  onClick={toggleAllowed}
+                  className="px-4 py-2 w-50% bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 text-white hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-[1.02] hover:-translate-y-1 shadow-lg hover:shadow-2xl animate-fade-in mb-5 mr-44 rounded-md"
+                  >
+                 {showAllowed ? "Hide allowed types" : "Show allowed types"}
+                       </button>
+
+                      <div
+                 className={
+                  `overflow-hidden transition-all duration-300 mt-2 ` +
+                     (showAllowed ? "max-w-full opacity-100" : "max-w-0 opacity-0")
+                   }
+                   style={{ whiteSpace: "nowrap" }}
+                    >
+                {allowedExt.map((ext) => (
+                  <span
+                   key={ext}
+                 className="inline-block px-2 py-1 mr-2 mb-1 bg-gray-700 rounded text-sm text-white"
+                   >
+                       {ext}
+                         </span>
+                        ))}
+                </div>
+                  </div>
+
+
+          {/* Logo Management Section */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                <Image className="w-4 h-4 text-blue-400" />
+                Event Logo
+              </h3>
+              
+              <div className="flex items-center">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={applyLogo}
+                    onChange={() => setApplyLogo((v) => !v)}
+                    className="sr-only peer"
+                    disabled={isUploading}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:bg-purple-600 transition-colors"></div>
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:translate-x-5 transition-transform"></div>
+                </label>
+                <span className="ml-3 text-sm text-slate-300">Apply Logo to uploads</span>
+              </div>
+            </div>
+
+
+              {applyLogo && (
+            <Card className="bg-slate-800 border-slate-700">
+              <CardContent className="p-4">
+                {fetchinglogoImage || uploadinglogoImage ? (
+                  <div className="flex items-center justify-center h-32 border-2 border-dashed border-slate-500 rounded-lg">
+                    <LoadingSpinner message={fetchinglogoImage ? "Loading logo..." : "Updating logo..."} />
+                  </div>
+                ) : logoImage ? (
+                  <div className="space-y-4">
+                    <div className="w-full h-32 rounded-lg overflow-hidden flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800">
+                      <img
+                        src={logoImage.url}
+                        alt="Event Logo"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <label
+                        className="flex-1 flex items-center justify-center cursor-pointer border border-slate-500 rounded-lg px-3 py-2 bg-slate-700 hover:bg-slate-600 transition-colors text-slate-200 text-sm"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Change Logo
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          onChange={handleUploadLogo}
+                          className="hidden"
+                          id="logo-upload"
+                          ref={logoInputRef}
+                        />
+                      </label>
+                      <Button
+                        onClick={() => logoImage && handleDeleteLogo(logoImage.name)}
+                        variant="destructive"
+                        size="sm"
+                        className="text-sm"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      onChange={handleUploadLogo}
+                      className="hidden"
+                      ref={logoInputRef}
+                      id="logo-upload"
+                    />
+                    <label
+                      htmlFor="logo-upload"
+                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-500 rounded-lg hover:border-slate-400 cursor-pointer transition-colors text-slate-400"
+                    >
+                      <div className="text-center">
+                        <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                        <span className="text-sm font-medium">
+                          Upload Event Logo
+                        </span>
+                        <p className="text-xs mt-1">
+                          PNG or JPG, max 2MB
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+              )}
+          </div>
+
           {/* Drop Zone */}
           <div
+            ref={dropzoneRef}
             className={`
               relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer
               group hover:scale-[1.02] animate-fade-in
               ${isDragOver 
-                ? 'border-purple-400 bg-purple-500/10 scale-[1.02]' 
+                ? 'border-purple-400 bg-purple-500/10 scale-[1.02] shadow-lg' 
                 : 'border-slate-500 hover:border-purple-400 hover:bg-purple-500/5'
               }
             `}
+            onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -326,13 +598,13 @@ const FileUploader: React.FC<FileUploadProps> = ({
               ref={fileInputRef}
               type="file"
               multiple
-              onChange={handleInputChange}
+              onChange={(e) => handleFileChange(e.target.files)}
               disabled={isUploading}
               className="hidden"
-              accept="image/*,video/*"
+              accept="image/*,video/*,audio/*,text/*"
             />
             
-            <div className="space-y-4">
+            <div className="space-y-4 pointer-events-none">
               <div className={`mx-auto w-16 h-16 rounded-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 ${isDragOver ? 'animate-bounce' : ''}`}>
                 <Upload className={`w-8 h-8 text-purple-400 transition-transform duration-300 ${isDragOver ? 'scale-110' : 'group-hover:scale-110'}`} />
               </div>
@@ -342,7 +614,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
                   {isDragOver ? 'Drop files here' : 'Choose files or drag & drop'}
                 </p>
                 <p className="text-sm text-slate-400">
-                  Images and videos up to 50MB each
+                  Images, videos, audio, and text files
                 </p>
               </div>
             </div>
@@ -406,7 +678,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
 
           {/* Upload Button */}
           <button
-            onClick={handleUpload}
+            onClick={applyLogo ? handleUploadwithlogo : handleUpload}
             disabled={!selectedFiles || isUploading}
             className={`
               w-full py-3 px-4 rounded-xl font-medium transition-all duration-300 transform
@@ -424,7 +696,7 @@ const FileUploader: React.FC<FileUploadProps> = ({
             ) : (
               <div className="flex items-center justify-center gap-2">
                 <Upload className="w-5 h-5" />
-                Upload Files
+                {applyLogo ? 'Upload with Logo' : 'Upload Files'}
               </div>
             )}
           </button>

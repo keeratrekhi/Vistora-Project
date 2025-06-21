@@ -93,3 +93,23 @@ export const deleteCoverImage = async (userId : string, coverImage : string, por
     await APIService.delete(`${env.VITE_BACKEND_URL}/s3/portfoliocover/${encodeURIComponent(portfolioName)}/${encodeURIComponent(coverImage)}?userId=${encodeURIComponent(userId)}`);
     return;
 }
+
+
+export const uploadlogoImage = async(eventId : string, file : FormData): Promise<void> => {
+    await APIService.post(
+        `${env.VITE_BUCKET_URL}/uploadlogo/${eventId}`, 
+        file);
+    return;
+}
+
+
+export const fetchlogoImage = async (eventId : string): Promise<{}> => {
+    const response = await APIService.get(`${env.VITE_BUCKET_URL}/logo/${eventId}`);
+    return response.data;
+}
+
+
+export const deletelogoImage = async (eventId : string, logoImage : string) : Promise<void> => {
+    await APIService.delete(`${env.VITE_BUCKET_URL}/deletelogo/${eventId}/${encodeURIComponent(logoImage)}`);
+    return;
+}
