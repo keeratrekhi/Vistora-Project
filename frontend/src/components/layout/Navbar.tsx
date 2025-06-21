@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { LogOut, User } from "lucide-react";
-import VistoraLogo from "@/assets/logos/captus-name-logo.jpg";
+import VistoraLogo from "@/assets/logos/captus-name-logo-dark.jpg";
 import HamburgerMenu from "./HamburgerMenu";
 
 interface NavbarProps {
