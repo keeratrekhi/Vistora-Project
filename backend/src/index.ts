@@ -29,6 +29,12 @@ import publicRouter from "./routes/public.route";
 
 const app = express();
 
+const whitelist = [
+  "http://localhost:3000",
+  "http://localhost:8080",
+  "http://localhost:5173",
+];
+
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     // Allow all origins in development
@@ -38,12 +44,12 @@ const corsOptions: CorsOptions = {
 
     // Production whitelist
     const productionOrigins = [
-        "http://localhost:3000",
-        "http://localhost:8080",
+      "https://your-production-domain.com",
+      "http://localhost:3000",
+       "http://localhost:8080",
         "http://localhost:5173",
-        "https://cloudgallery.onrender.com/api/auth/login",
-        "https://your-production-domain.com",
-        `https://${process.env.B2_BUCKET_NAME}.s3.${process.env.B2_REGION}.backblazeb2.com`,
+        "https://cloudgallery.onrender.com",
+      `https://${process.env.B2_BUCKET_NAME}.s3.${process.env.B2_REGION}.backblazeb2.com`,
     ];
 
     if (origin && productionOrigins.includes(origin)) {
@@ -82,12 +88,13 @@ app.use("/api/portfolio", portfolioroutes);
 app.use("/api/adminevents", eventRouter);
 app.use("/s3", s3Routes);
 
-app.use((err:any, req:Request, res:Response, next:NextFunction) => {
-  res.header("Access-Control-Allow-Origin", req.header("Origin") || "");
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
-  console.error(err);
-  res.status(err.status || 500).json({ error: err.message });
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  const consolestatus = err.statusCode || 500;
+  const message = err.message;
+  res.status(consolestatus).json({
+    success: false,
+    message,
+  });
 });
 
 const PORT = process.env.PORT || 3000;
