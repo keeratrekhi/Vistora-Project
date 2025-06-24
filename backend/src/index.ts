@@ -29,13 +29,6 @@ import publicRouter from "./routes/public.route";
 
 const app = express();
 
-const whitelist = [
-  "http://localhost:3000",
-  "http://localhost:8080",
-  "http://localhost:5173",
-  "https://cloudgallery.onrender.com/api/auth/login",
-];
-
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     // Allow all origins in development
@@ -45,8 +38,12 @@ const corsOptions: CorsOptions = {
 
     // Production whitelist
     const productionOrigins = [
-      "https://your-production-domain.com",
-      `https://${process.env.B2_BUCKET_NAME}.s3.${process.env.B2_REGION}.backblazeb2.com`,
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://localhost:5173",
+        "https://cloudgallery.onrender.com/api/auth/login",
+        "https://your-production-domain.com",
+        `https://${process.env.B2_BUCKET_NAME}.s3.${process.env.B2_REGION}.backblazeb2.com`,
     ];
 
     if (origin && productionOrigins.includes(origin)) {
