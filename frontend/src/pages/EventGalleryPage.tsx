@@ -88,16 +88,16 @@ const EventGalleryPage = () => {
             }}
           >
             {/* Animated Background Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-900/40 via-blue-900/30 to-pink-900/40 animate-gradient-x"></div>
+            <div className="absolute inset-0 "></div>
             
             {/* Floating Elements */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {/* <div className="absolute inset-0 overflow-hidden pointer-events-none">
               <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-purple-400/20 to-pink-400/20 rounded-full blur-2xl animate-float"></div>
               <div className="absolute top-40 right-20 w-24 h-24 bg-gradient-to-r from-blue-400/30 to-purple-400/30 rounded-full blur-xl animate-float" style={{animationDelay: '1s'}}></div>
               <div className="absolute bottom-32 left-1/4 w-20 h-20 bg-gradient-to-r from-pink-400/25 to-purple-400/25 rounded-full blur-lg animate-float" style={{animationDelay: '2s'}}></div>
-              
+               */}
               {/* Sparkle Effects */}
-              <div className="absolute top-32 left-1/3 text-white/30 animate-pulse">
+              {/* <div className="absolute top-32 left-1/3 text-white/30 animate-pulse">
                 <Sparkles className="w-6 h-6" />
               </div>
               <div className="absolute top-64 right-1/3 text-white/20 animate-pulse" style={{animationDelay: '1.5s'}}>
@@ -106,7 +106,7 @@ const EventGalleryPage = () => {
               <div className="absolute bottom-40 right-1/4 text-white/25 animate-pulse" style={{animationDelay: '3s'}}>
                 <Sparkles className="w-5 h-5" />
               </div>
-            </div>
+            </div> */}
             
             {/* Back Button */}
             <div className="absolute top-8 left-8 z-20">
@@ -127,43 +127,43 @@ const EventGalleryPage = () => {
             >
               <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
                 {/* Event Badge */}
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-6 py-3 text-sm font-medium">
+                {/* <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-6 py-3 text-sm font-medium">
                   <Camera className="w-4 h-4" />
                   Event Gallery
-                </div>
+                </div> */}
                              
-                <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent leading-tight animate-slide-in-left">
+                {/* <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent leading-tight animate-slide-in-left">
                   {event.title}
                 </h1>
-                
-                {event.description && (
+                 */}
+                {/* {event.description && (
                   <p className="text-xl md:text-2xl text-slate-200 max-w-3xl mx-auto leading-relaxed animate-slide-in-right">
                     {event.description}
                   </p>
-                )}
+                )} */}
 
                 {/* Event Info Cards */}
-                <div className="flex flex-wrap justify-center gap-4 mt-8 animate-fade-in" style={{animationDelay: '0.5s'}}>
+                {/* <div className="flex flex-wrap justify-center gap-4 mt-8 animate-fade-in" style={{animationDelay: '0.5s'}}>
                   {event.location && (
                     <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 text-sm">
                       <MapPin className="w-4 h-4 text-pink-300" />
                       {event.location}
                     </div>
                   )}
-                </div>
+                </div> */}
           
-                <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed animate-fade-in" style={{animationDelay: '0.7s'}}>
+                {/* <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed animate-fade-in" style={{animationDelay: '0.7s'}}>
                   Discover and download beautiful moments captured during this special event
-                </p>
+                </p> */}
               </div>
             </div>
 
             {/* Scroll Indicator */}
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            {/* <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
               <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center backdrop-blur-sm">
                 <div className="w-1 h-3 bg-white/70 rounded-full mt-2 animate-pulse"></div>
               </div>
-            </div>
+            </div> */}
           </header>
 
           {/* Gallery Section */}
@@ -171,25 +171,25 @@ const EventGalleryPage = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {/* Gallery Header Card */}
               <div className="bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 rounded-3xl shadow-2xl shadow-purple-900/20 border border-slate-200/50 p-8 md:p-12 mb-12 backdrop-blur-sm">
-                <div className="text-center mb-12">
+                {/* <div className="text-center mb-12">
                   <div className="inline-flex items-center gap-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full px-6 py-3 text-sm font-medium mb-6">
                     <Heart className="w-4 h-4" />
                     Captured Memories
                   </div>
                   
-                  {/* <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 bg-clip-text text-transparent mb-6">
+                  <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 bg-clip-text text-transparent mb-6">
                     Event Gallery
-                  </h2> */}
+                  </h2>
                   
                   <div className="w-32 h-1 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 mx-auto rounded-full mb-6"></div>
                   
                   <p className="text-white text-lg max-w-2xl mx-auto leading-relaxed">
                     Browse through all the amazing photos and videos from this event. Click on any image to view it in full size, or download your favorites.
                   </p>
-                </div>
+                </div> */}
 
                 {/* Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
                   <div className="text-center p-6 bg-gradient-to-tr from-slate-900 via-purple-900/20 to-slate-900 rounded-2xl border border-purple-100">
                     <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-3">
                       <Camera className="w-6 h-6 text-white" />
@@ -213,7 +213,7 @@ const EventGalleryPage = () => {
                     <h3 className="font-semibold text-slate-900 mb-1">Memories</h3>
                     <p className="text-sm text-white">Relive the special moments</p>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Media Gallery */}
                 <div className="rounded-2xl p-6 ">
@@ -227,12 +227,12 @@ const EventGalleryPage = () => {
           <footer className="bg-gradient-to-r from-slate-900 via-purple-900/50 to-slate-900 text-white py-16 mt-20 border-t border-slate-700/50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
               <div className="flex items-center justify-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                {/* <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
                   <Camera className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
                   Event Gallery
-                </span>
+                </span> */}
               </div>
               
               <p className="text-slate-300 mb-6 text-lg max-w-2xl mx-auto leading-relaxed">
@@ -242,7 +242,7 @@ const EventGalleryPage = () => {
               <div className="w-24 h-1 bg-gradient-to-r from-purple-400 to-pink-400 mx-auto rounded-full mb-6"></div>
               
               <div className="text-sm text-slate-400">
-                © 2024 <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-medium">Event Gallery</span>. All rights reserved.
+                © 2024 <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent font-medium">Vistora</span>. All rights reserved.
               </div>
             </div>
           </footer>

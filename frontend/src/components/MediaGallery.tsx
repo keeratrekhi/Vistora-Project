@@ -264,23 +264,23 @@ const MediaGallery = ({
     <div className="space-y-6">
       {/* Filter and View Mode Controls */}
       <div className="bg-gradient-to-tr from-slate-900 via-purple-900/20 to-slate-900  rounded-xl  border-slate-200 p-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ">
           {/* Filter by type */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 ">
             <Filter className="w-5 h-5 text-slate-600" />
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as 'all' | 'image' | 'video')}
-              className="bg-white border border-slate-300 rounded-lg text-slate-800 px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 shadow-sm"
+              className="bg-slate-900 border border-slate-300 rounded-lg text-white px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 shadow-sm"
             >
-              <option value="all">All Media</option>
-              <option value="image">Images</option>
-              <option value="video">Videos</option>
+              <option value="all" className='bg-slate-900'>All Media</option>
+              <option value="image" className='bg-slate-900'>Images</option>
+              <option value="video" className='bg-slate-900'>Videos</option>
             </select>
           </div>
 
           {/* View mode toggle */}
-          <div className="flex items-center gap-1 bg-slate-200 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-slate-900 rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded transition-all duration-200 ${
@@ -321,7 +321,7 @@ const MediaGallery = ({
                 onChange={toggleSelectAll}
                 className="w-5 h-5 rounded border-slate-300 text-gray-500 focus:ring-gray-500"
               />
-              <span className="text-sm font-medium text-black">
+              <span className="text-sm font-medium text-white">
                 {selectedItems.length > 0 
                   ? `${selectedItems.length} of ${filteredMedia.length} selected`
                   : `${filteredMedia.length} item${filteredMedia.length !== 1 ? 's' : ''}`}

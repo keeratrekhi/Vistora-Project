@@ -33,6 +33,7 @@ const whitelist = [
   "http://localhost:3000",
   "http://localhost:8080",
   "http://localhost:5173",
+  "https://cloud-gallery-taupe.vercel.app"
 ];
 
 const corsOptions: CorsOptions = {
