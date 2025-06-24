@@ -33,7 +33,7 @@ const whitelist = [
   "http://localhost:3000",
   "http://localhost:8080",
   "http://localhost:5173",
-  "https://cloud-gallery-taupe.vercel.app"
+  "https://cloudgallery.onrender.com/api/auth/login",
 ];
 
 const corsOptions: CorsOptions = {
@@ -85,13 +85,12 @@ app.use("/api/portfolio", portfolioroutes);
 app.use("/api/adminevents", eventRouter);
 app.use("/s3", s3Routes);
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  const consolestatus = err.statusCode || 500;
-  const message = err.message;
-  res.status(consolestatus).json({
-    success: false,
-    message,
-  });
+app.use((err:any, req:Request, res:Response, next:NextFunction) => {
+  res.header("Access-Control-Allow-Origin", req.header("Origin") || "");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  console.error(err);
+  res.status(err.status || 500).json({ error: err.message });
 });
 
 const PORT = process.env.PORT || 3000;
