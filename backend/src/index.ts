@@ -29,12 +29,6 @@ import publicRouter from "./routes/public.route";
 
 const app = express();
 
-const whitelist = [
-  "http://localhost:3000",
-  "http://localhost:8080",
-  "http://localhost:5173",
-];
-
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     // Allow all origins in development

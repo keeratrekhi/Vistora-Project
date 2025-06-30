@@ -169,7 +169,7 @@ const AdminEventPage = () => {
     if (!event || !eventId) return;
 
     try {
-      const shareLink = `${window.location.origin}/gallery/${eventId}`;
+      const shareLink = `/gallery/${eventId}`;
       const eventDateString =
         typeof event.eventDate === "string"
           ? event.eventDate

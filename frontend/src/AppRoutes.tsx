@@ -31,7 +31,7 @@ import Profile from "./pages/Profile";
 import Plans from "./pages/Plans";
 import { CreateEvent } from "./pages/Admin/CreateEvent";
 import EventGalleryPage from "./pages/EventGalleryPage";
-import LandingPage from "./pages/LandingPage";
+// import LandingPage from "./pages/LandingPage";
 
 
 interface RouteObject {
@@ -41,11 +41,11 @@ interface RouteObject {
 }
 
 export const NonAuthenticateRoutes: RouteObject[] = [
-  {
-    path:HOME_ROUTE,
-    element:<LandingPage/>,
-    withLayout:false,
-  },
+  // {
+  //   path:HOME_ROUTE,
+  //   element:<LandingPage/>,
+  //   withLayout:false,
+  // },
   {
     path: LOGIN_ROUTE,
     element: <Login />,
