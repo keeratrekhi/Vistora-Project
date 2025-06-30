@@ -39,6 +39,7 @@ const corsOptions: CorsOptions = {
     // Production whitelist
     const productionOrigins = [
       "https://your-production-domain.com",
+      "https://cloudgallery-frontend.onrender.com",
       "http://localhost:3000",
        "http://localhost:8080",
         "http://localhost:5173",
