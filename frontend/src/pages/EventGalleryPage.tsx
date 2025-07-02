@@ -8,6 +8,7 @@ import axios from "axios";
 import { AccessType } from "@/enums/AccessType";
 import { Calendar, MapPin, Camera, ArrowLeft, Sparkles, Heart, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 const env=import.meta.env;
 
@@ -49,14 +50,18 @@ const EventGalleryPage = () => {
     load();
   }, [eventId, navigate]);
 
-  if (showPinModal && event) {
+if (showPinModal && event) {
     return (
       <PinModal
-        isOpen
+        isOpen={showPinModal}
         onSubmit={(pin) => {
-          if (event.pin.toString() === pin) setPinVerified(true);
-          else alert("Incorrect PIN");
-          setShowPinModal(false);
+          if (event.pin.toString() === pin){ 
+            setPinVerified(true);
+            setShowPinModal(false);
+          }else{
+            toast.error("Incorrect PIN");
+          
+          }
         }}
         onClose={() => navigate("/")}
       />
