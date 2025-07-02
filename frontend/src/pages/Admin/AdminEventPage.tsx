@@ -414,7 +414,7 @@ const AdminEventPage = () => {
                       variant="outline"
                       className="border-slate-600 text-slate-300 hover:bg-slate-700/50 shadow-md hover:shadow-lg transition-all duration-300 group bg-slate-800/50 backdrop-blur-sm transform hover:scale-[1.02] hover:-translate-y-1"
                       onClick={() => {
-                        navigator.clipboard.writeText(event.publishedUrl || "");
+                        navigator.clipboard.writeText(`${window.location.origin}${event.publishedUrl}` || "");
                         alert("Link copied to clipboard!");
                       }}
                     >

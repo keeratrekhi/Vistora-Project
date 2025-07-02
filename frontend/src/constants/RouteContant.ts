@@ -12,4 +12,4 @@ export const CHUNK_UPLOAD_ROUTE = "/chunk-upload";
 export const ADMIN_EVENT_PAGE_ROUTE = "/events/:id";
 export const PROFILE_ROUTE = "/profile/:id";
 export const PLANS_ROUTE = "/plan/:id";
-export const PUBLISHED_ROUTE = "/gallery/:id";
+export const PUBLISHED_ROUTE = "/gallery/client/:id";
