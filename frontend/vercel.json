@@ -1,19 +1,23 @@
+
 {
-  "rewrites": [
-    {
-      "source": "/gallery/:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "facebookexternalhit" },
-        { "type": "header", "key": "user-agent", "value": "Twitterbot" },
-        { "type": "header", "key": "user-agent", "value": "WhatsApp" },
-        { "type": "header", "key": "user-agent", "value": "LinkedInBot" }
-      ],
-      "destination": "/api/gallery/:id"
-    },
+  "redirects": [
     {
       "source": "/gallery/:id",
       "destination": "/gallery/client/:id",
       "statusCode": 302
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/gallery/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot)"
+        }
+      ],
+      "destination": "/api/gallery/:id"
     },
     {
       "source": "/gallery/client/:id",
