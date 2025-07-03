@@ -1,4 +1,4 @@
-// api/gallery/[id].ts
+
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
 const OG_HTML = (data: {
@@ -79,11 +79,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 3) Fallback image URL
     if (!imgUrl) {
-      imgUrl = 'https://Vistora-frontend-brown.vercel.app/default-og.png';
+      imgUrl = 'https://cloud-gallery-psi.vercel.app/default-og.png';
     }
 
     // 4) Build full share URL
-    const host = process.env.VERCEL_URL ?? 'Vistora-frontend-brown.vercel.app';
+    const host = process.env.VERCEL_URL ?? 'cloud-gallery-psi.vercel.app';
     const fullUrl = `https://${host}/gallery/${id}`;
 
     // 5) Generate and send OG HTML
