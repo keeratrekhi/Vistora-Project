@@ -140,8 +140,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Generated OG data:', {
       id,
       url: fullUrl,
-      title,
-      desc,
+      title: e.title       || 'Captus Event',
+      desc:  e.description || 'Check out this event on Captus',
       img: finalImageUrl
     });
 
