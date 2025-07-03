@@ -106,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // 1) Fetch public event metadata
     const eventRes = await fetch(
-      `https://captus-backend.onrender.com/api/events/public/${encodeURIComponent(id)}`
+      `https://cloudgallery.onrender.com/api/events/public/${encodeURIComponent(id)}`
     );
     if (!eventRes.ok) return res.status(404).send('Event not found');
     const e = await eventRes.json();
@@ -115,7 +115,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let imgUrl = e.coverImageUrl || '';
     try {
       const coverRes = await fetch(
-        `https://captus-backend.onrender.com/api/events/eventscover/${encodeURIComponent(id)}`
+        `https://cloudgallery.onrender.com/api/events/eventscover/${encodeURIComponent(id)}`
       );
       if (coverRes.ok) {
         const json = await coverRes.json();
@@ -129,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 3) Ensure absolute URL for images
     if (imgUrl && !imgUrl.startsWith('http')) {
-      imgUrl = `https://captus-backend.onrender.com${imgUrl.startsWith('/') ? imgUrl : '/' + imgUrl}`;
+      imgUrl = `https://cloudgallery.onrender.com${imgUrl.startsWith('/') ? imgUrl : '/' + imgUrl}`;
     }
 
     // 4) Fallback image URL
