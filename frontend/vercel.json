@@ -1,27 +1,7 @@
 {
   "rewrites": [
-    {
-      "source": "/gallery/:id",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": "(facebookexternalhit|Twitterbot|WhatsApp|LinkedInBot|Iframely|Discordbot|Pinterest|Slack|Telegram|Skype|Googlebot|Bingbot)"
-        }
-      ],
-      "destination": "/api/gallery/:id"
-    },
-    {
-      "source": "/gallery/:id",
-      "destination": "/gallery/client/:id"
-    },
-    {
-      "source": "/gallery/client/:id",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/((?!api).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/gallery/client/:id", "destination": "/index.html" },
+    { "source": "/gallery/:id",        "destination": "/api/gallery/:id" },
+    { "source": "/((?!api).*)",        "destination": "/index.html" }
   ]
 }
