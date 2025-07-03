@@ -31,6 +31,9 @@ const app = express();
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
+      if (!origin) {
+      return callback(null, true);
+    }
     // Allow all origins in development
     if (process.env.NODE_ENV !== "production") {
       return callback(null, true);
@@ -38,16 +41,16 @@ const corsOptions: CorsOptions = {
 
     // Production whitelist
     const productionOrigins = [
-      "https://your-production-domain.com",
-      "https://cloudgallery-frontend.onrender.com",
-      "https://cloud-gallery-psi.vercel.app",
-      "https://dashboard.vistora.studio",
-      "http://localhost:3000",
-       "http://localhost:8080",
-        "http://localhost:5173",
-        "https://cloudgallery.onrender.com",
-      `https://${process.env.B2_BUCKET_NAME}.s3.${process.env.B2_REGION}.backblazeb2.com`,
-    ];
+  "https://your-production-domain.com",
+  "https://cloudgallery-frontend.onrender.com",
+  "https://cloud-gallery-psi.vercel.app",
+  "https://dashboard.vistora.studio",
+  "http://localhost:3000",
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "https://cloudgallery.onrender.com",
+  `https://${process.env.B2_BUCKET_NAME}.s3.${process.env.B2_REGION}.backblazeb2.com`,
+];
 
     if (origin && productionOrigins.includes(origin)) {
       callback(null, true);
