@@ -8,10 +8,13 @@ import eventRouter from "./routes/event.routes";
 import authRouter from "./routes/auth.routes";
 import { validateUserMiddleware } from "./middleware/auth";
 import s3Routes from "./routes/backblaze.route"
+import cron from 'node-cron';
+import axios from 'axios';
 import { uploadToB2 } from "./controllers/backblaze";
 import path from "path";
 import storageroutes from "./routes/storage.routes"
 import publicRouter from "./routes/public.route";
+import healthRouter from "./routes/health.route";
 
 // async function main() {
 //   try {
@@ -76,6 +79,7 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
+app.use("/api/health", healthRouter);
 app.use("/api", testroutes);
 app.use("/api/auth", authRouter);
 app.use("/api/events", publicRouter);
@@ -100,4 +104,14 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
+});
+
+
+cron.schedule('* * * * *', async () => {
+  try {
+    await axios.get(`https://cloudgallery.onrender.com/api/health`);
+    console.log('🟢 Health check passed');
+  } catch (err: any) {
+    console.error('🔴 Health check failed:', err.message);
+  }
 });
