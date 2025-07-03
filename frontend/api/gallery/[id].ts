@@ -33,14 +33,21 @@ const OG_HTML = (data: {
 
   <!-- Scrapers should not follow redirects -->
   <meta name="robots" content="noindex, nofollow" />
-</head>
-<body>
+  
+  <!-- Browser redirect -->
   <script>
-    // Immediate redirect for browsers
     window.location.href = "/gallery/client/${data.id}";
   </script>
-  <!-- Fallback for browsers without JS -->
-  <p>Redirecting to gallery... <a href="/gallery/client/${data.id}">Click here</a></p>
+</head>
+<body>
+  <img src="${data.img}" alt="Event cover" style="width:100%;max-height:60vh;object-fit:cover;"/>
+  <div style="padding:1rem;text-align:center;">
+    <h1 style="margin:1rem 0 0.5rem;font-size:2rem;">${data.title}</h1>
+    <p style="margin:0 0 1rem;color:#555;">${data.desc}</p>
+  </div>
+  <p style="text-align:center;">
+    <a href="/gallery/client/${data.id}">Continue to gallery →</a>
+  </p>
 </body>
 </html>`;
 
@@ -68,10 +75,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
     
     if (!eventRes.ok) {
+      console.error(`Event fetch failed: ${eventRes.status} ${eventRes.statusText}`);
       return res.status(404).send('Event not found');
     }
     
     const e = await eventRes.json();
+    console.log('Event data:', JSON.stringify(e, null, 2));
 
     // 2) Fetch cover image list
     let imgUrl = e.coverImageUrl || '';
@@ -90,6 +99,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             imgUrl = json.covers[0].url;
             isValidImage = isDirectImage(imgUrl);
           }
+        } else {
+          console.error(`Cover fetch failed: ${coverRes.status} ${coverRes.statusText}`);
         }
       }
     } catch (covErr) {
@@ -100,12 +111,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let finalImageUrl = imgUrl;
     
     // Fix relative URLs
-    if (finalImageUrl.startsWith('/')) {
+    if (finalImageUrl && finalImageUrl.startsWith('/')) {
       finalImageUrl = `https://cloudgallery.onrender.com${finalImageUrl}`;
     }
     
     // Verify it's a direct image
-    if (!isValidImage) {
+    if (!isValidImage || !finalImageUrl) {
+      console.warn('Using fallback image');
       finalImageUrl = 'https://cloud-gallery-psi.vercel.app/default-og.png';
     }
     
@@ -124,6 +136,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (desc.length > 160) {
       desc = `${desc.substring(0, 157)}...`;
     }
+
+    console.log('Generated OG data:', {
+      id,
+      url: fullUrl,
+      title,
+      desc,
+      img: finalImageUrl
+    });
 
     // 5) Generate and send OG HTML
     const html = OG_HTML({
