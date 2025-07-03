@@ -107,7 +107,7 @@ app.listen(PORT, () => {
 });
 
 
-cron.schedule('*/5 * * * *', async () => {
+cron.schedule("*/50 * * * * *", async () => {
   try {
     // You can even do a HEAD if you don't need any response body
     await axios.head(`https://cloudgallery.onrender.com/api/ping`);
