@@ -22,82 +22,40 @@ const OG_HTML = (data: {
   <meta property="og:image:width" content="1200"/>
   <meta property="og:image:height" content="630"/>
   <meta property="og:image:type" content="image/jpeg"/>
+  <meta property="og:image:secure_url" content="${data.img}" />
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="${data.title}"/>
   <meta name="twitter:description" content="${data.desc}"/>
   <meta name="twitter:image" content="${data.img}"/>
-  <meta name="twitter:image:alt" content="${data.title} cover image"/>
+  <meta name="twitter:image:alt" content="${data.title}" />
 
-  <!-- WhatsApp specific -->
-  <meta property="og:image:secure_url" content="${data.img}" />
-  
-  <!-- Browser redirect: scrapers will ignore this -->
-  <meta http-equiv="refresh" content="0;url=/gallery/client/${data.id}" />
-  <style>
-    body { 
-      margin:0; 
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #fafafa;
-    }
-    .card {
-      max-width: 800px;
-      margin: 0 auto;
-      background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .cover-container {
-      height: 420px;
-      overflow: hidden;
-      background: #f0f0f0;
-    }
-    .cover {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .content {
-      padding: 24px;
-      text-align: center;
-    }
-    h1 {
-      margin: 0 0 16px;
-      font-size: 28px;
-      color: #333;
-      line-height: 1.3;
-    }
-    .desc {
-      color: #666;
-      font-size: 18px;
-      line-height: 1.5;
-      margin: 0;
-    }
-    .footer {
-      padding: 16px;
-      text-align: center;
-      color: #999;
-      font-size: 14px;
-    }
-  </style>
+  <!-- Scrapers should not follow redirects -->
+  <meta name="robots" content="noindex, nofollow" />
 </head>
 <body>
-  <div class="card">
-    <div class="cover-container">
-      <img src="${data.img}" alt="Event cover" class="cover"/>
-    </div>
-    <div class="content">
-      <h1>${data.title}</h1>
-      <p class="desc">${data.desc}</p>
-    </div>
-  </div>
-  <div class="footer">
-    <a href="/gallery/client/${data.id}">View full gallery →</a>
-  </div>
+  <script>
+    // Immediate redirect for browsers
+    window.location.href = "/gallery/client/${data.id}";
+  </script>
+  <!-- Fallback for browsers without JS -->
+  <p>Redirecting to gallery... <a href="/gallery/client/${data.id}">Click here</a></p>
 </body>
 </html>`;
+
+// Valid image extensions
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+
+// Check if URL is a direct image
+const isDirectImage = (url: string) => {
+  try {
+    const path = new URL(url).pathname.toLowerCase();
+    return IMAGE_EXTENSIONS.some(ext => path.endsWith(ext));
+  } catch {
+    return false;
+  }
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { id } = req.query as { id: string };
@@ -108,62 +66,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const eventRes = await fetch(
       `https://cloudgallery.onrender.com/api/events/public/${encodeURIComponent(id)}`
     );
-    if (!eventRes.ok) return res.status(404).send('Event not found');
+    
+    if (!eventRes.ok) {
+      return res.status(404).send('Event not found');
+    }
+    
     const e = await eventRes.json();
 
-    // 2) Fetch cover image list (keep your existing logic)
+    // 2) Fetch cover image list
     let imgUrl = e.coverImageUrl || '';
+    let isValidImage = isDirectImage(imgUrl);
+    
     try {
-      const coverRes = await fetch(
-        `https://cloudgallery.onrender.com/api/events/eventscover/${encodeURIComponent(id)}`
-      );
-      if (coverRes.ok) {
-        const json = await coverRes.json();
-        if (Array.isArray(json.covers) && json.covers[0]?.url) {
-          imgUrl = json.covers[0].url;
+      // Only fetch covers if current image is invalid
+      if (!isValidImage) {
+        const coverRes = await fetch(
+          `https://cloudgallery.onrender.com/api/events/eventscover/${encodeURIComponent(id)}`
+        );
+        
+        if (coverRes.ok) {
+          const json = await coverRes.json();
+          if (Array.isArray(json.covers) && json.covers[0]?.url) {
+            imgUrl = json.covers[0].url;
+            isValidImage = isDirectImage(imgUrl);
+          }
         }
       }
     } catch (covErr) {
       console.error('Cover fetch error:', covErr);
     }
 
-    // 3) Ensure absolute URL for images
-    if (imgUrl && !imgUrl.startsWith('http')) {
-      imgUrl = `https://cloudgallery.onrender.com${imgUrl.startsWith('/') ? imgUrl : '/' + imgUrl}`;
+    // 3) Validate and fix image URL
+    let finalImageUrl = imgUrl;
+    
+    // Fix relative URLs
+    if (finalImageUrl.startsWith('/')) {
+      finalImageUrl = `https://cloudgallery.onrender.com${finalImageUrl}`;
     }
-
-    // 4) Fallback image URL
-    if (!imgUrl) {
-      imgUrl = 'https://https://cloud-gallery-psi.vercel.app/default-og.png';
+    
+    // Verify it's a direct image
+    if (!isValidImage) {
+      finalImageUrl = 'https://cloud-gallery-psi.vercel.app/default-og.png';
     }
+    
+    // Add cache buster
+    finalImageUrl += finalImageUrl.includes('?') ? '&' : '?';
+    finalImageUrl += `ts=${Date.now()}`;
 
-    // 5) Add cache-buster to prevent stale images
-    const cacheBuster = `?ts=${Date.now()}`;
-    imgUrl += (imgUrl.includes('?') ? '&' : '?') + cacheBuster;
-
-    // 6) Truncate description for WhatsApp (160 char limit)
-    const maxDescLength = 160;
-    const cleanDesc = e.description
-      ? (e.description.length > maxDescLength 
-          ? `${e.description.substring(0, maxDescLength)}...` 
-          : e.description)
-      : 'Check out this event on Captus';
-
-    // 7) Build full share URL
-    const host = process.env.VERCEL_URL ?? 'https://cloud-gallery-psi.vercel.app';
+    // 4) Prepare metadata
+    const host = process.env.VERCEL_URL ?? 'cloud-gallery-psi.vercel.app';
     const fullUrl = `https://${host}/gallery/${id}`;
+    
+    const title = e.title || 'Vistora Event';
+    let desc = e.description || 'Check out this event on Vistora';
+    
+    // Truncate description for WhatsApp
+    if (desc.length > 160) {
+      desc = `${desc.substring(0, 157)}...`;
+    }
 
-    // 8) Generate and send OG HTML
+    // 5) Generate and send OG HTML
     const html = OG_HTML({
       id,
       url: fullUrl,
-      title: e.title || 'Captus Event',
-      desc: cleanDesc,
-      img: imgUrl
+      title,
+      desc,
+      img: finalImageUrl
     });
 
     res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24h
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 min cache
     return res.status(200).send(html);
   } catch (err) {
     console.error('Unhandled exception:', err);
