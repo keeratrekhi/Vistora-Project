@@ -14,7 +14,7 @@ import { uploadToB2 } from "./controllers/backblaze";
 import path from "path";
 import storageroutes from "./routes/storage.routes"
 import publicRouter from "./routes/public.route";
-import healthRouter from "./routes/health.route";
+import cronRouter from "./routes/cron.route";
 
 // async function main() {
 //   try {
@@ -79,7 +79,7 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
-app.use("/api/health", healthRouter);
+app.use("/api/ping", cronRouter);
 app.use("/api", testroutes);
 app.use("/api/auth", authRouter);
 app.use("/api/events", publicRouter);
@@ -107,11 +107,12 @@ app.listen(PORT, () => {
 });
 
 
-cron.schedule('* * * * *', async () => {
+cron.schedule('*/5 * * * *', async () => {
   try {
-    await axios.get(`https://cloudgallery.onrender.com/api/health`);
-    console.log('🟢 Health check passed');
+    // You can even do a HEAD if you don't need any response body
+    await axios.head(`https://cloudgallery.onrender.com/api/ping`);
+    console.log('🟢 Ping OK');
   } catch (err: any) {
-    console.error('🔴 Health check failed:', err.message);
+    console.error('🔴 Ping failed:', err.message);
   }
 });
