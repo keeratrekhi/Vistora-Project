@@ -40,6 +40,7 @@ const corsOptions: CorsOptions = {
     const productionOrigins = [
       "https://your-production-domain.com",
       "https://cloudgallery-frontend.onrender.com",
+      "https://cloud-gallery-psi.vercel.app",
       "http://localhost:3000",
        "http://localhost:8080",
         "http://localhost:5173",
