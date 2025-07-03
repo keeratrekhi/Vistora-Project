@@ -41,6 +41,7 @@ const corsOptions: CorsOptions = {
       "https://your-production-domain.com",
       "https://cloudgallery-frontend.onrender.com",
       "https://cloud-gallery-psi.vercel.app",
+      "https://dashboard.vistora.studio",
       "http://localhost:3000",
        "http://localhost:8080",
         "http://localhost:5173",
