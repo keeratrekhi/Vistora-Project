@@ -80,7 +80,7 @@ export const NonAuthenticateRoutes: RouteObject[] = [
 export const AuthenticateRoutes: RouteObject[] = [
   {
     path: HOME_ROUTE,
-    element: <Navigate to={DASHBOARD_ROUTE} />,
+    element: <Navigate to={LOGIN_ROUTE} />,
     withLayout: true,
   },
   {

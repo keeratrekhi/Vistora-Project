@@ -26,7 +26,7 @@ const FormInput = ({
     <>
       <FormLabel
         label={label}
-        className="text-sm font-medium text-[#333333]"
+        className="text-sm font-medium text-[#fbf7f7]"
       />
       <input
         placeholder={placeholder}

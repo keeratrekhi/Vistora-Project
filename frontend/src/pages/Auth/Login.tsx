@@ -125,10 +125,10 @@ const Login: React.FC = () => {
                       label="Username"
                       type="text"
                       name="username"
-                      placeholder="Enter your username"
+                      placeholder="Enter your username (Demo Username - kk)"
                       register={register}
                       error={errors.username}
-                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 hover:bg-slate-700/70 hover:border-slate-500"
+                      className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white  placeholder-slate-400 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 hover:bg-slate-700/70 hover:border-slate-500"
                     />
                   </div>
 
@@ -136,7 +136,7 @@ const Login: React.FC = () => {
                     <div className="relative">
                       <FormInput
                         label="Password"
-                        placeholder="Enter your password"
+                        placeholder="Enter your password (Demo Pass - 12345)"
                         type={showPassword ? "text" : "password"}
                         name="password"
                         register={register}
