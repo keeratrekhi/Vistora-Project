@@ -718,18 +718,6 @@ export async function UploadHandlerwithLogo(
 
 
 
-function getCachedUrl(fileKey: string): string {
-  const cloudflareCache = process.env.CLOUDFLARE_CACHE;
-  const bucketName = process.env.BUCKET_NAME;
-  
-  if (!cloudflareCache || !bucketName) {
-    throw new Error("Missing CLOUDFLARE_CACHE or BUCKET_NAME");
-  }
-  
-  return `${cloudflareCache}/proxy?bucket=${bucketName}&key=${encodeURIComponent(fileKey)}`;
-}
-
-
 
 
 const s3client = new S3Client({
@@ -773,15 +761,22 @@ export const GetMedia = async (req: Request, res: Response) => {
       return !relativePath.includes('/');
     });
 
-   const mediaUrls = await Promise.all(
+    const mediaUrls = await Promise.all(
       rootFiles.map(async (file) => {
-        // Use Cloudflare cache URL directly without signing
-        const cacheUrl = `${process.env.CLOUDFLARE_CACHE}/proxy?bucket=${process.env.BUCKET_NAME}&key=${encodeURIComponent(file.Key!)}`;
-        
+        const signed = await getSignedUrl(
+          s3client,
+          new GetObjectCommand({
+            Bucket: process.env.BUCKET_NAME!,
+            Key: file.Key!,
+          }),
+          { expiresIn: 3600 }
+        );
+     
+
         return {
-          url: cacheUrl, // Use Cloudflare cache URL directly
-          name: file.Key!.split("/").pop(),
-          type: getFileType(file.Key!),
+          url: `${process.env.CLOUDFLARE_CACHE}/proxy?url=${encodeURIComponent(signed)}`,
+          name: file.Key!.split("/").pop(),          // Filename only
+          type: getFileType(file.Key!),               // File type detection
           size: file.Size
         };
       })
@@ -793,7 +788,6 @@ export const GetMedia = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to load media" });
   }
 };
-
 
 function getFileType(filename: string): string {
   const ext = filename.split(".").pop()?.toLowerCase();
@@ -1815,9 +1809,6 @@ export async function deletePortfolioCoverController(
 
 
 
-
-
-
 // Helper function to generate download URL
 async function generateDownloadUrl(fileKey: string): Promise<string> {
   const bucketName = process.env.BUCKET_NAME;
@@ -1887,16 +1878,14 @@ export async function downloadMultipleFilesHandler(req: Request, res: Response) 
     const archive = archiver('zip', { zlib: { level: 9 } });
     archive.pipe(res);
 
-      for (const fileName of fileNames) {
+    for (const fileName of fileNames) {
       const fileKey = `events/${eventId}/${fileName}`;
+      const downloadUrl = await generateDownloadUrl(fileKey);
       
-      // Use Cloudflare cache URL directly
-      const downloadUrl = `${process.env.CLOUDFLARE_CACHE}/proxy?bucket=${process.env.BUCKET_NAME}&key=${encodeURIComponent(fileKey)}`;
-      
+      // Stream directly to archive
       const response = await axios.get(downloadUrl, { responseType: 'stream' });
       archive.append(response.data, { name: fileName });
     }
-
 
     await archive.finalize();
   } catch (error: any) {
