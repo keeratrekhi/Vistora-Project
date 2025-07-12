@@ -1814,19 +1814,26 @@ export async function deletePortfolioCoverController(
 async function generateDownloadUrl(fileKey: string): Promise<string> {
   const bucketName = process.env.BUCKET_NAME;
   if (!bucketName) {
-    throw new Error("B2_BUCKET_NAME environment variable is not set");
+    throw new Error("BUCKET_NAME environment variable is not set");
   }
 
-  // generateDownloadUrl()
-const command = new GetObjectCommand({
-  Bucket: bucketName,
-  Key: fileKey,
-  ResponseContentDisposition: `attachment; filename="${path.basename(fileKey)}"`
-});
+  // Generate signed URL as before
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: fileKey,
+    ResponseContentDisposition: `attachment; filename="${path.basename(fileKey)}"`
+  });
 
-  return getSignedUrl(s3client, command, { expiresIn: 3600 });
+  const signedUrl = await getSignedUrl(s3client, command, { expiresIn: 3600 });
+
+  // Add Cloudflare cache layer
+  const cloudflareCache = process.env.CLOUDFLARE_CACHE;
+  if (!cloudflareCache) {
+    throw new Error("CLOUDFLARE_CACHE environment variable is not set");
+  }
+  
+  return `${cloudflareCache}/proxy?url=${encodeURIComponent(signedUrl)}`;
 }
-
 
 // Single File Download Handler
 export async function downloadSingleFileHandler(req: Request, res: Response) {
