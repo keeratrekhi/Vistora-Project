@@ -773,13 +773,15 @@ export const GetMedia = async (req: Request, res: Response) => {
       return !relativePath.includes('/');
     });
 
-  const mediaUrls = await Promise.all(
+   const mediaUrls = await Promise.all(
       rootFiles.map(async (file) => {
-        const fileKey = file.Key!;
+        // Use Cloudflare cache URL directly without signing
+        const cacheUrl = `${process.env.CLOUDFLARE_CACHE}/proxy?bucket=${process.env.BUCKET_NAME}&key=${encodeURIComponent(file.Key!)}`;
+        
         return {
-          url: getCachedUrl(fileKey),
-          name: fileKey.split("/").pop(),
-          type: getFileType(fileKey),
+          url: cacheUrl, // Use Cloudflare cache URL directly
+          name: file.Key!.split("/").pop(),
+          type: getFileType(file.Key!),
           size: file.Size
         };
       })
@@ -1815,9 +1817,14 @@ export async function deletePortfolioCoverController(
 
 
 
+
+// Helper function to generate download URL
 async function generateDownloadUrl(fileKey: string): Promise<string> {
   const bucketName = process.env.BUCKET_NAME;
-  
+  if (!bucketName) {
+    throw new Error("BUCKET_NAME environment variable is not set");
+  }
+
   // Generate signed URL as before
   const command = new GetObjectCommand({
     Bucket: bucketName,
@@ -1827,8 +1834,13 @@ async function generateDownloadUrl(fileKey: string): Promise<string> {
 
   const signedUrl = await getSignedUrl(s3client, command, { expiresIn: 3600 });
 
-  // Pass signed URL to worker
-  return `${process.env.CLOUDFLARE_CACHE}/proxy?url=${encodeURIComponent(signedUrl)}`;
+  // Add Cloudflare cache layer
+  const cloudflareCache = process.env.CLOUDFLARE_CACHE;
+  if (!cloudflareCache) {
+    throw new Error("CLOUDFLARE_CACHE environment variable is not set");
+  }
+  
+  return `${cloudflareCache}/proxy?url=${encodeURIComponent(signedUrl)}`;
 }
 
 // Single File Download Handler
@@ -1875,17 +1887,18 @@ export async function downloadMultipleFilesHandler(req: Request, res: Response) 
     const archive = archiver('zip', { zlib: { level: 9 } });
     archive.pipe(res);
 
-    for (const fileName of fileNames) {
+      for (const fileName of fileNames) {
       const fileKey = `events/${eventId}/${fileName}`;
-      const downloadUrl = await generateDownloadUrl(fileKey);
       
-      // Stream directly to archive
+      // Use Cloudflare cache URL directly
+      const downloadUrl = `${process.env.CLOUDFLARE_CACHE}/proxy?bucket=${process.env.BUCKET_NAME}&key=${encodeURIComponent(fileKey)}`;
+      
       const response = await axios.get(downloadUrl, { responseType: 'stream' });
       archive.append(response.data, { name: fileName });
     }
 
-    await archive.finalize();
 
+    await archive.finalize();
   } catch (error: any) {
     console.error("Bulk download error:", error.message);
     res.status(500).json({ message: "Failed to create zip file" });
