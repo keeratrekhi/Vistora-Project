@@ -1815,10 +1815,20 @@ export async function deletePortfolioCoverController(
 
 
 
-
-// Helper function to generate download URL
 async function generateDownloadUrl(fileKey: string): Promise<string> {
-  return getCachedUrl(fileKey);
+  const bucketName = process.env.BUCKET_NAME;
+  
+  // Generate signed URL as before
+  const command = new GetObjectCommand({
+    Bucket: bucketName,
+    Key: fileKey,
+    ResponseContentDisposition: `attachment; filename="${path.basename(fileKey)}"`
+  });
+
+  const signedUrl = await getSignedUrl(s3client, command, { expiresIn: 3600 });
+
+  // Pass signed URL to worker
+  return `${process.env.CLOUDFLARE_CACHE}/proxy?url=${encodeURIComponent(signedUrl)}`;
 }
 
 // Single File Download Handler
@@ -1875,7 +1885,7 @@ export async function downloadMultipleFilesHandler(req: Request, res: Response) 
     }
 
     await archive.finalize();
-    
+
   } catch (error: any) {
     console.error("Bulk download error:", error.message);
     res.status(500).json({ message: "Failed to create zip file" });
