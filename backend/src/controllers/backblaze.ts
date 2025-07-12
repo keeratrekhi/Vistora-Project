@@ -1859,13 +1859,7 @@ export async function downloadMultipleFilesHandler(req: Request, res: Response) 
   try {
     const { eventId } = req.params;
     
-    // Handle different query parameter formats
-    let fileNames: string[] = [];
-    if (typeof req.query.fileNames === 'string') {
-      fileNames = [req.query.fileNames];
-    } else if (Array.isArray(req.query.fileNames)) {
-      fileNames = req.query.fileNames as string[];
-    }
+     const { fileNames } = req.body;
 
     if (!eventId || fileNames.length === 0) {
       return res.status(400).json({ message: "Invalid request parameters" });
