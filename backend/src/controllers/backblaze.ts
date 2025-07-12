@@ -1859,7 +1859,16 @@ export async function downloadMultipleFilesHandler(req: Request, res: Response) 
   try {
     const { eventId } = req.params;
     
-     const { fileNames } = req.body;
+    // Handle fileNames from query parameters
+    let fileNames: string[] = [];
+    
+    if (typeof req.query.fileNames === 'string') {
+      // Single file: ?fileNames=image.jpg
+      fileNames = [req.query.fileNames];
+    } else if (Array.isArray(req.query.fileNames)) {
+      // Multiple files: ?fileNames=img1.jpg&fileNames=img2.jpg
+      fileNames = req.query.fileNames as string[];
+    }
 
     if (!eventId || fileNames.length === 0) {
       return res.status(400).json({ message: "Invalid request parameters" });
@@ -1877,12 +1886,9 @@ export async function downloadMultipleFilesHandler(req: Request, res: Response) 
       const fileKey = `events/${eventId}/${fileName}`;
       const downloadUrl = await generateDownloadUrl(fileKey);
       
-      // Ensure fileName is a string
-      const safeFileName = String(fileName);
-      
       // Stream directly to archive
       const response = await axios.get(downloadUrl, { responseType: 'stream' });
-      archive.append(response.data, { name: safeFileName });
+      archive.append(response.data, { name: fileName });
     }
 
     await archive.finalize();

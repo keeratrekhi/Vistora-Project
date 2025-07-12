@@ -195,35 +195,41 @@ const MediaGallery = ({
     }
   };
 
-  const handleZipDownload = async () => {
-    if (!selectedItems.length || downloading) return;
+const handleZipDownload = async () => {
+  if (!selectedItems.length || downloading) return;
+  
+  try {
+    setDownloading(true);
     
-    try {
-      setDownloading(true);
-      
-      const response = await axios.post(
-        `${env.VITE_BACKEND_URL}/api/events/download-multiple-zip/${eventId}`,
-        { fileNames: selectedItems },
-        {
-          responseType: 'blob',
-          withCredentials: true
-        }
-      );
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${eventId}_media.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      setError('Failed to create zip file');
-    } finally {
-      setDownloading(false);
-    }
-  };
+    // Convert array to query string
+    const queryString = selectedItems
+      .map(fileName => `fileNames=${encodeURIComponent(fileName)}`)
+      .join('&');
+    
+    const response = await axios.get(
+      `${env.VITE_BACKEND_URL}/api/events/download-multiple-zip/${eventId}?${queryString}`,
+      {
+        responseType: 'blob',
+        withCredentials: true
+      }
+    );
+
+    // Create download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${eventId}_media.zip`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    
+  } catch (error) {
+    console.error("Download failed:", error);
+    alert("Download failed. Please try again.");
+  } finally {
+    setDownloading(false);
+  }
+};
 
   const handleMediaClick = (index: number, e: React.MouseEvent) => {
     // Only open viewer if not clicking on action buttons
