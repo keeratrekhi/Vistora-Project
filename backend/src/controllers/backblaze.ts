@@ -1858,33 +1858,39 @@ export async function downloadSingleFileHandler(req: Request, res: Response) {
 export async function downloadMultipleFilesHandler(req: Request, res: Response) {
   try {
     const { eventId } = req.params;
-    const { fileNames } = req.body;
+    
+    // Handle different query parameter formats
+    let fileNames: string[] = [];
+    if (typeof req.query.fileNames === 'string') {
+      fileNames = [req.query.fileNames];
+    } else if (Array.isArray(req.query.fileNames)) {
+      fileNames = req.query.fileNames as string[];
+    }
 
-    if (!eventId || !Array.isArray(fileNames) || fileNames.length === 0) {
+    if (!eventId || fileNames.length === 0) {
       return res.status(400).json({ message: "Invalid request parameters" });
     }
 
-    // Create zip archive
-    const zip = new JSZip();
-    const archive = archiver('zip', { zlib: { level: 9 } });
-
-    // Set response headers
+    // Add cache control headers
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${eventId}_media.zip"`);
 
-    // Pipe archive to response
+    const archive = archiver('zip', { zlib: { level: 9 } });
     archive.pipe(res);
 
-    // Add files to archive
     for (const fileName of fileNames) {
       const fileKey = `events/${eventId}/${fileName}`;
       const downloadUrl = await generateDownloadUrl(fileKey);
       
-      const response = await axios.get(downloadUrl, { responseType: 'arraybuffer' });
-      archive.append(response.data, { name: fileName });
+      // Ensure fileName is a string
+      const safeFileName = String(fileName);
+      
+      // Stream directly to archive
+      const response = await axios.get(downloadUrl, { responseType: 'stream' });
+      archive.append(response.data, { name: safeFileName });
     }
 
-    // Finalize the archive
     await archive.finalize();
   } catch (error: any) {
     console.error("Bulk download error:", error.message);
