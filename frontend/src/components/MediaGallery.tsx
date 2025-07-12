@@ -201,8 +201,11 @@ const handleZipDownload = async () => {
   try {
     setDownloading(true);
     
-    // Convert array to query string
-    const queryString = selectedItems
+    // Sort filenames for consistent caching
+    const sortedItems = [...selectedItems].sort();
+    
+    // Convert to query string
+    const queryString = sortedItems
       .map(fileName => `fileNames=${encodeURIComponent(fileName)}`)
       .join('&');
     
