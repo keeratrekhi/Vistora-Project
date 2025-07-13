@@ -125,11 +125,14 @@ const Login: React.FC = () => {
                       label="Username"
                       type="text"
                       name="username"
-                      placeholder="Enter your username (Demo Username - kk)"
+                      placeholder="Enter your username (Demo User - kk)"
                       register={register}
                       error={errors.username}
                       className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white  placeholder-slate-400 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 hover:bg-slate-700/70 hover:border-slate-500"
                     />
+                    <label htmlFor="" className="text-white">
+                        Demo User = kk
+                      </label>
                   </div>
 
                   <div className="transform hover:scale-[1.02] transition-all duration-300 hover:translate-y-[-2px]">
@@ -143,6 +146,9 @@ const Login: React.FC = () => {
                         error={errors.password}
                         className="w-full px-4 py-3 pr-12 bg-slate-700/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 hover:bg-slate-700/70 hover:border-slate-500"
                       />
+                      <label htmlFor="" className="text-white">
+                        Demo Pass = 12345
+                      </label>
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
