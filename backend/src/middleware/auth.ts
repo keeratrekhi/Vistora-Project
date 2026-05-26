@@ -21,6 +21,9 @@ export const validateUserMiddleware = (
   }
 
   try {
+    if (req.method === "OPTIONS") {
+  return next();
+}
     if (!secret) {
       throw new Error(
         "JWT_SECRET_KEY  is not defined in environment variables."
