@@ -15,6 +15,7 @@ import path from "path";
 import storageroutes from "./routes/storage.routes"
 import publicRouter from "./routes/public.route";
 import cronRouter from "./routes/cron.route";
+dotenv.config();
 
 // async function main() {
 //   try {
@@ -75,8 +76,8 @@ const corsOptions: CorsOptions = {
   optionsSuccessStatus: 204,
 };
 
-dotenv.config();
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
