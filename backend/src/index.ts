@@ -46,6 +46,7 @@ const corsOptions: CorsOptions = {
     const productionOrigins = [
   "https://your-production-domain.com",
   "https://cloudgallery-frontend.onrender.com",
+  "https://vistora-project-three.vercel.app",
   "https://cloud-gallery-psi.vercel.app",
   "https://dashboard.vistora.studio",
   "http://localhost:3000",
