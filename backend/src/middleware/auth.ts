@@ -9,19 +9,20 @@ export const validateUserMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
-  // Allow preflight requests
+): void => {
   if (req.method === "OPTIONS") {
-    return next();
+    next();
+    return;
   }
 
   const token = req.cookies.access_token;
 
   if (!token) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Unauthorized - No token provided",
     });
+    return;
   }
 
   try {
@@ -38,9 +39,10 @@ export const validateUserMiddleware = (
 
     next();
   } catch (err) {
-    return res.status(401).json({
+    res.status(401).json({
       success: false,
       message: "Unauthorized - Invalid token",
     });
+    return;
   }
 };
